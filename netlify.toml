@@ -1,12 +1,7 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = ".netlify/v1/functions"
 
 [build.environment]
   NODE_VERSION = "20"
-
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/entrypoint/:splat"
-  status = 200
-  force = true
