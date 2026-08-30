@@ -8,11 +8,4 @@ export default defineConfig({
     port: 4321,
     host: 'localhost',
   },
-  vite: {
-    server: {
-      hmr: {
-        port: 4322,
-      },
-    },
-  },
 });
