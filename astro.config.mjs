@@ -6,13 +6,12 @@ export default defineConfig({
   adapter: netlify(),
   server: {
     port: 4321,
-    host: '0.0.0.0',
+    host: 'localhost',
   },
   vite: {
     server: {
       hmr: {
-        port: 4321,
-        host: 'localhost',
+        port: 4322,
       },
     },
   },
