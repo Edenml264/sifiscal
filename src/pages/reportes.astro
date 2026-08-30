@@ -1,0 +1,208 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Reportes">
+  <div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3 mb-0"><i class="bi bi-file-earmark-bar-graph me-2"></i>Reportes</h1>
+    </div>
+
+    <!-- Selección de reporte -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="bi bi-funnel me-1"></i>Seleccionar Reporte
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Tipo de Reporte <span class="text-danger">*</span></label>
+            <select id="reportTipo" class="form-select" required>
+              <option value="">Seleccionar reporte</option>
+              <option value="obligaciones-pendientes">Obligaciones Pendientes</option>
+              <option value="obligaciones-vencidas">Obligaciones Vencidas</option>
+              <option value="efirma-proximas">e.firmas Próximas a Vencer</option>
+              <option value="csd-proximos">CSD Próximos a Vencer</option>
+              <option value="contribuyentes">Listado de Contribuyentes</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Contribuyente (opcional)</label>
+            <select id="reportContribuyente" class="form-select">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button id="btnGenerar" class="btn btn-primary w-100">
+              <i class="bi bi-file-earmark me-1"></i>Generar Reporte
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resultado del reporte -->
+    <div id="reportResult" class="d-none">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span id="reportTitle"><i class="bi bi-table me-1"></i>Reporte</span>
+          <button id="btnImprimir" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-printer me-1"></i>Imprimir
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped mb-0" id="reportTable">
+              <thead class="table-dark" id="reportHead"></thead>
+              <tbody id="reportBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card-footer text-muted">
+          <small>Generado: <span id="reportFecha"></span> | Total: <span id="reportTotal">0</span> registros</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reportes disponibles (tarjetas) -->
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card border-primary h-100">
+          <div class="card-body text-center">
+            <i class="bi bi-clock-history display-4 text-primary mb-2"></i>
+            <h6 class="card-title">Obligaciones Pendientes</h6>
+            <p class="card-text small text-muted">Obligaciones que aún no se han presentado</p>
+            <button class="btn btn-outline-primary btn-sm" onclick="selectReport('obligaciones-pendientes')">
+              <i class="bi bi-arrow-right me-1"></i>Seleccionar
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-danger h-100">
+          <div class="card-body text-center">
+            <i class="bi bi-exclamation-triangle display-4 text-danger mb-2"></i>
+            <h6 class="card-title">Obligaciones Vencidas</h6>
+            <p class="card-text small text-muted">Obligaciones con fecha límite superada</p>
+            <button class="btn btn-outline-danger btn-sm" onclick="selectReport('obligaciones-vencidas')">
+              <i class="bi bi-arrow-right me-1"></i>Seleccionar
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-warning h-100">
+          <div class="card-body text-center">
+            <i class="bi bi-key display-4 text-warning mb-2"></i>
+            <h6 class="card-title">e.firmas por Vencer</h6>
+            <p class="card-text small text-muted">e.firmas que vencen en 30 días</p>
+            <button class="btn btn-outline-warning btn-sm" onclick="selectReport('efirma-proximas')">
+              <i class="bi bi-arrow-right me-1"></i>Seleccionar
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-info h-100">
+          <div class="card-body text-center">
+            <i class="bi bi-credit-card display-4 text-info mb-2"></i>
+            <h6 class="card-title">CSD por Vencer</h6>
+            <p class="card-text small text-muted">Certificados de Sello Digital próximos a vencer</p>
+            <button class="btn btn-outline-info btn-sm" onclick="selectReport('csd-proximos')">
+              <i class="bi bi-arrow-right me-1"></i>Seleccionar
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-success h-100">
+          <div class="card-body text-center">
+            <i class="bi bi-people display-4 text-success mb-2"></i>
+            <h6 class="card-title">Listado de Contribuyentes</h6>
+            <p class="card-text small text-muted">Todos los contribuyentes registrados</p>
+            <button class="btn btn-outline-success btn-sm" onclick="selectReport('contribuyentes')">
+              <i class="bi bi-arrow-right me-1"></i>Seleccionar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    .card { border: none !important; box-shadow: none !important; }
+    .table { font-size: 12px; }
+  }
+</style>
+
+<script is:inline>
+  document.addEventListener('DOMContentLoaded', function() {
+    loadContribuyentes();
+  });
+
+  async function loadContribuyentes() {
+    try {
+      const res = await fetch('/api/contribuyentes');
+      const data = await res.json();
+      const options = data.map(c => '<option value="' + c.id + '">' + c.nombre + ' (' + c.rfc + ')</option>').join('');
+      document.getElementById('reportContribuyente').innerHTML = '<option value="">Todos</option>' + options;
+    } catch (e) {
+      console.error('Error loading contribuyentes:', e);
+    }
+  }
+
+  function selectReport(tipo) {
+    document.getElementById('reportTipo').value = tipo;
+    document.getElementById('reportTipo').focus();
+  }
+
+  document.getElementById('btnGenerar').addEventListener('click', async function() {
+    const tipo = document.getElementById('reportTipo').value;
+    const contribuyenteId = document.getElementById('reportContribuyente').value;
+
+    if (!tipo) {
+      alert('Selecciona un tipo de reporte');
+      return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Generando...';
+
+    try {
+      let url = '/api/reportes?tipo=' + tipo;
+      if (contribuyenteId) url += '&contribuyente_id=' + contribuyenteId;
+
+      const res = await fetch(url);
+      const report = await res.json();
+
+      if (report.error) {
+        alert(report.error);
+        return;
+      }
+
+      document.getElementById('reportTitle').innerHTML = '<i class="bi bi-table me-1"></i>' + report.titulo;
+      document.getElementById('reportHead').innerHTML = '<tr>' + report.columnas.map(c => '<th>' + c + '</th>').join('') + '</tr>';
+      document.getElementById('reportBody').innerHTML = report.data.length > 0
+        ? report.data.map(row => '<tr>' + row.map(cell => '<td>' + (cell || '-') + '</td>').join('') + '</tr>').join('')
+        : '<tr><td colspan="' + report.columnas.length + '" class="text-center py-3 text-muted">No se encontraron datos</td></tr>';
+      document.getElementById('reportFecha').textContent = new Date(report.fecha).toLocaleString('es-MX');
+      document.getElementById('reportTotal').textContent = report.data.length;
+
+      document.getElementById('reportResult').classList.remove('d-none');
+      document.getElementById('reportResult').scrollIntoView({ behavior: 'smooth' });
+    } catch (e) {
+      alert('Error al generar reporte');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-file-earmark me-1"></i>Generar Reporte';
+    }
+  });
+
+  document.getElementById('btnImprimir').addEventListener('click', function() {
+    window.print();
+  });
+</script>

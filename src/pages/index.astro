@@ -1,0 +1,61 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const user = Astro.locals.user;
+if (user) {
+  return Astro.redirect('/dashboard');
+}
+---
+
+<BaseLayout title="Iniciar Sesión">
+  <div class="d-flex justify-content-center align-items-center min-vh-100" style="background: linear-gradient(135deg, #1a237e 0%, #0d1257 100%);">
+    <div class="card shadow" style="width: 100%; max-width: 400px;">
+      <div class="card-body p-4">
+        <div class="text-center mb-4">
+          <h2 class="text-primary fw-bold">SIFiscal</h2>
+          <p class="text-muted small">Sistema de Control Fiscal</p>
+        </div>
+
+        <form id="loginForm">
+          <div class="mb-3">
+            <label for="usuario" class="form-label">Usuario</label>
+            <input type="text" id="usuario" name="usuario" class="form-control" placeholder="admin" required />
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Contraseña</label>
+            <input type="password" id="password" name="password" class="form-control" placeholder="admin" required />
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+        </form>
+
+        <p class="text-center text-muted small mt-3 mb-0">
+          Usuario por defecto: admin / admin
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var data = {
+        usuario: document.getElementById('usuario').value,
+        password: document.getElementById('password').value,
+      };
+
+      fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      .then(function(res) {
+        if (res.ok) {
+          window.location.href = '/dashboard';
+        } else {
+          alert('Credenciales incorrectas');
+        }
+      })
+      .catch(function() { alert('Error de conexión'); });
+    });
+  </script>
+</BaseLayout>

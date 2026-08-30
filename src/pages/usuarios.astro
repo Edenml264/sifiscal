@@ -1,0 +1,363 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Usuarios y Permisos">
+  <div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3 mb-0"><i class="bi bi-people me-2"></i>Usuarios y Permisos</h1>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#usuarioModal" onclick="resetForm()">
+        <i class="bi bi-plus-lg me-1"></i>Nuevo Usuario
+      </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Perfil</label>
+            <select id="filterPerfil" class="form-select">
+              <option value="">Todos</option>
+              <option value="Administrador">Administrador</option>
+              <option value="Contador">Contador</option>
+              <option value="Auxiliar">Auxiliar</option>
+              <option value="Consulta">Consulta</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button id="btnBuscar" class="btn btn-outline-primary w-100">Buscar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de usuarios -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul me-1"></i>Usuarios</span>
+        <span id="totalUsuarios" class="badge bg-primary">0</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Usuario</th>
+                <th>Perfil</th>
+                <th>Creado</th>
+                <th class="text-center" style="width: 140px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usuariosTable">
+              <tr>
+                <td colspan="5" class="text-center py-4 text-muted">Cargando usuarios...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo/Editar Usuario -->
+  <div class="modal fade" id="usuarioModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="usuarioModalTitle">Nuevo Usuario</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="usuarioForm">
+            <input type="hidden" id="usuarioId" />
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Nombre completo <span class="text-danger">*</span></label>
+                <input type="text" id="usuarioNombre" class="form-control" placeholder="Juan Pérez" required />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Usuario (login) <span class="text-danger">*</span></label>
+                <input type="text" id="usuarioLogin" class="form-control" placeholder="juan.perez" required />
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Contraseña <span class="text-danger" id="passwordRequired">*</span></label>
+                <input type="password" id="usuarioPassword" class="form-control" placeholder="Mínimo 6 caracteres" />
+                <div class="form-text" id="passwordHelp">Dejar en blanco para mantener la actual</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Perfil <span class="text-danger">*</span></label>
+                <select id="usuarioPerfil" class="form-select" required>
+                  <option value="">Seleccionar perfil</option>
+                  <option value="Administrador">Administrador</option>
+                  <option value="Contador">Contador</option>
+                  <option value="Auxiliar">Auxiliar</option>
+                  <option value="Consulta">Consulta</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Permisos por módulo -->
+            <div class="card mb-3">
+              <div class="card-header">
+                <i class="bi bi-shield-lock me-1"></i>Permisos por Módulo
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-sm mb-0">
+                    <thead>
+                      <tr>
+                        <th>Módulo</th>
+                        <th class="text-center" style="width: 100px;">Sin Acceso</th>
+                        <th class="text-center" style="width: 100px;">Lectura</th>
+                        <th class="text-center" style="width: 100px;">Lectura/Escritura</th>
+                      </tr>
+                    </thead>
+                    <tbody id="permisosTable">
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" id="btnGuardar" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script is:inline>
+  let usuarios = [];
+  let editingId = null;
+  const modulos = ['dashboard', 'contribuyentes', 'obligaciones', 'calendario', 'efirma', 'expediente', 'notas', 'usuarios', 'respaldos', 'reportes'];
+  const moduloLabels = {
+    dashboard: 'Dashboard',
+    contribuyentes: 'Contribuyentes',
+    obligaciones: 'Obligaciones',
+    calendario: 'Calendario',
+    efirma: 'e.firma / CSD',
+    expediente: 'Expediente',
+    notas: 'Notas',
+    usuarios: 'Usuarios',
+    respaldos: 'Respaldos',
+    reportes: 'Reportes',
+  };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    renderPermisosTable();
+    loadUsuarios();
+  });
+
+  function renderPermisosTable(permisos) {
+    const tbody = document.getElementById('permisosTable');
+    const perm = permisos || getDefaultPermisos();
+
+    tbody.innerHTML = modulos.map(function(mod) {
+      const val = perm[mod] || 'R';
+      return '<tr>' +
+        '<td>' + moduloLabels[mod] + '</td>' +
+        '<td class="text-center"><input type="radio" name="perm_' + mod + '" value="-"' + (val === '-' ? ' checked' : '') + ' class="form-check-input" /></td>' +
+        '<td class="text-center"><input type="radio" name="perm_' + mod + '" value="R"' + (val === 'R' ? ' checked' : '') + ' class="form-check-input" /></td>' +
+        '<td class="text-center"><input type="radio" name="perm_' + mod + '" value="RW"' + (val === 'RW' ? ' checked' : '') + ' class="form-check-input" /></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function getDefaultPermisos() {
+    return {
+      dashboard: 'R',
+      contribuyentes: 'R',
+      obligaciones: 'R',
+      calendario: 'R',
+      efirma: 'R',
+      expediente: 'R',
+      notas: 'R',
+      usuarios: '-',
+      respaldos: '-',
+      reportes: 'R',
+    };
+  }
+
+  function getPermisosFromForm() {
+    const permisos = {};
+    modulos.forEach(function(mod) {
+      const radios = document.getElementsByName('perm_' + mod);
+      radios.forEach(function(radio) {
+        if (radio.checked) permisos[mod] = radio.value;
+      });
+    });
+    return permisos;
+  }
+
+  async function loadUsuarios() {
+    try {
+      const perfil = document.getElementById('filterPerfil').value;
+      let url = '/api/usuarios?';
+      if (perfil) url += 'perfil=' + perfil;
+
+      const res = await fetch(url);
+      usuarios = await res.json();
+      renderTable();
+    } catch (e) {
+      console.error('Error loading usuarios:', e);
+    }
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('usuariosTable');
+    document.getElementById('totalUsuarios').textContent = usuarios.length;
+
+    if (usuarios.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron usuarios</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = usuarios.map(function(usr) {
+      const fecha = new Date(usr.created_at).toLocaleDateString('es-MX');
+      const perfilBadge = getPerfilBadge(usr.perfil);
+
+      return '<tr>' +
+        '<td><strong>' + usr.nombre + '</strong></td>' +
+        '<td><code>' + usr.usuario + '</code></td>' +
+        '<td>' + perfilBadge + '</td>' +
+        '<td>' + fecha + '</td>' +
+        '<td class="text-center">' +
+          '<button class="btn btn-sm btn-outline-warning me-1" onclick="editUsuario(\'' + usr.id + '\')" title="Editar"><i class="bi bi-pencil"></i></button>' +
+          '<button class="btn btn-sm btn-outline-danger" onclick="deleteUsuario(\'' + usr.id + '\')" title="Eliminar"><i class="bi bi-trash"></i></button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function getPerfilBadge(perfil) {
+    const colors = {
+      'Administrador': 'bg-danger',
+      'Contador': 'bg-primary',
+      'Auxiliar': 'bg-info',
+      'Consulta': 'bg-secondary',
+    };
+    return '<span class="badge ' + (colors[perfil] || 'bg-secondary') + '">' + perfil + '</span>';
+  }
+
+  function resetForm() {
+    editingId = null;
+    document.getElementById('usuarioId').value = '';
+    document.getElementById('usuarioNombre').value = '';
+    document.getElementById('usuarioLogin').value = '';
+    document.getElementById('usuarioPassword').value = '';
+    document.getElementById('usuarioPerfil').value = '';
+    document.getElementById('usuarioModalTitle').textContent = 'Nuevo Usuario';
+    document.getElementById('passwordRequired').style.display = 'inline';
+    document.getElementById('passwordHelp').textContent = 'Mínimo 6 caracteres';
+    renderPermisosTable();
+  }
+
+  async function editUsuario(id) {
+    try {
+      const res = await fetch('/api/usuarios?id=' + id);
+      const usr = await res.json();
+      editingId = id;
+      document.getElementById('usuarioId').value = id;
+      document.getElementById('usuarioNombre').value = usr.nombre;
+      document.getElementById('usuarioLogin').value = usr.usuario;
+      document.getElementById('usuarioPassword').value = '';
+      document.getElementById('usuarioPerfil').value = usr.perfil;
+      document.getElementById('usuarioModalTitle').textContent = 'Editar Usuario';
+      document.getElementById('passwordRequired').style.display = 'none';
+      document.getElementById('passwordHelp').textContent = 'Dejar en blanco para mantener la actual';
+
+      let permisos = getDefaultPermisos();
+      try { permisos = JSON.parse(usr.permisos); } catch (e) {}
+      renderPermisosTable(permisos);
+
+      new bootstrap.Modal(document.getElementById('usuarioModal')).show();
+    } catch (e) {
+      alert('Error al cargar usuario');
+    }
+  }
+
+  document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const nombre = document.getElementById('usuarioNombre').value;
+    const usuario = document.getElementById('usuarioLogin').value;
+    const password = document.getElementById('usuarioPassword').value;
+    const perfil = document.getElementById('usuarioPerfil').value;
+    const permisos = JSON.stringify(getPermisosFromForm());
+
+    if (!nombre || !usuario || !perfil) {
+      alert('Nombre, usuario y perfil son obligatorios');
+      return;
+    }
+
+    if (!editingId && !password) {
+      alert('La contraseña es obligatoria para nuevos usuarios');
+      return;
+    }
+
+    if (password && password.length < 6) {
+      alert('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    const body = {
+      nombre: nombre,
+      usuario: usuario,
+      perfil: perfil,
+      permisos: permisos,
+    };
+    if (password) body.password = password;
+
+    try {
+      let res;
+      if (editingId) {
+        body.id = editingId;
+        res = await fetch('/api/usuarios', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } else {
+        res = await fetch('/api/usuarios', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      }
+      const data = await res.json();
+      if (data.success) {
+        bootstrap.Modal.getInstance(document.getElementById('usuarioModal')).hide();
+        resetForm();
+        loadUsuarios();
+      } else {
+        alert(data.error || 'Error al guardar');
+      }
+    } catch (e) {
+      alert('Error de conexión');
+    }
+  });
+
+  document.getElementById('btnBuscar').addEventListener('click', loadUsuarios);
+
+  async function deleteUsuario(id) {
+    if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
+    try {
+      const res = await fetch('/api/usuarios?id=' + id, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        loadUsuarios();
+      } else {
+        alert(data.error || 'Error al eliminar');
+      }
+    } catch (e) {
+      alert('Error de conexión');
+    }
+  }
+</script>

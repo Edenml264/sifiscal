@@ -1,0 +1,252 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Control de e.firma y CSD" activeMenu="efirma">
+  <div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <ul class="nav nav-tabs card-header-tabs" id="efirmaTabs">
+        <li class="nav-item">
+          <a class="nav-link active" href="#" onclick="switchTab('efirma', this)">🔐 e.firma</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" onclick="switchTab('csd', this)">🔑 CSD</a>
+        </li>
+      </ul>
+      <button class="btn btn-primary" onclick="openModal()">+ Nuevo Registro</button>
+    </div>
+
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Contribuyente</th>
+              <th>Folio</th>
+              <th>Emisión</th>
+              <th>Vencimiento</th>
+              <th>Días Restantes</th>
+              <th>Estatus</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tablaEfirma">
+            <tr><td colspan="7" class="text-center text-muted">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="modalEfirma" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Nuevo Registro</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="efirmaForm">
+            <input type="hidden" id="eId" />
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label">Contribuyente *</label>
+                <select class="form-select" id="eContribuyente" required></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Tipo *</label>
+                <select class="form-select" id="eTipo" required>
+                  <option value="e.firma">e.firma</option>
+                  <option value="CSD">CSD (Certificado de Sello Digital)</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Folio</label>
+                <input type="text" class="form-control" id="eFolio" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Fecha de Emisión *</label>
+                <input type="date" class="form-control" id="eEmision" required />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Fecha de Vencimiento *</label>
+                <input type="date" class="form-control" id="eVencimiento" required />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Estatus</label>
+                <select class="form-select" id="eEstatus">
+                  <option value="Vigente">Vigente</option>
+                  <option value="Por Renovar">Por Renovar</option>
+                  <option value="Vencida">Vencida</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Notas</label>
+                <textarea class="form-control" id="eNotas" rows="2"></textarea>
+              </div>
+            </div>
+          </form>
+          <div class="alert alert-info small mt-3 mb-0">
+            <strong>Nota:</strong> Por seguridad, el sistema no almacena contraseñas ni archivos sensibles de la e.firma.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="saveEfirma()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script is:inline>
+  var bsModal = null;
+  var currentTab = 'efirma';
+
+  function initEfirma() {
+    bsModal = new bootstrap.Modal(document.getElementById('modalEfirma'));
+    loadContribuyentesSelect();
+    loadEfirma();
+  }
+
+  function switchTab(tab, el) {
+    currentTab = tab;
+    document.querySelectorAll('#efirmaTabs .nav-link').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    loadEfirma();
+  }
+
+  function loadContribuyentesSelect() {
+    fetch('/api/contribuyentes')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var sel = document.getElementById('eContribuyente');
+        sel.innerHTML = '<option value="">Seleccionar contribuyente</option>';
+        data.forEach(function(c) {
+          sel.innerHTML += '<option value="' + c.id + '">' + c.nombre + ' (' + c.rfc + ')</option>';
+        });
+      });
+  }
+
+  function calcDiasRestantes(fechaVenc) {
+    var hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    var ven = new Date(fechaVenc);
+    var diff = Math.ceil((ven - hoy) / (1000 * 60 * 60 * 24));
+    return diff;
+  }
+
+  function loadEfirma() {
+    var params = new URLSearchParams();
+    params.set('tipo', currentTab === 'efirma' ? 'e.firma' : 'CSD');
+
+    fetch('/api/efirma?' + params)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var tbody = document.getElementById('tablaEfirma');
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No hay registros</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(function(e) {
+          var badge = 'bg-secondary';
+          if (e.estatus === 'Vigente') badge = 'bg-success';
+          else if (e.estatus === 'Por Renovar') badge = 'bg-warning text-dark';
+          else if (e.estatus === 'Vencida') badge = 'bg-danger';
+
+          var dias = calcDiasRestantes(e.fecha_vencimiento);
+          var diasClass = '';
+          var diasLabel = '';
+          if (dias < 0) { diasClass = 'text-danger fw-bold'; diasLabel = 'Vencida'; }
+          else if (dias <= 7) { diasClass = 'text-danger'; diasLabel = dias + ' días'; }
+          else if (dias <= 30) { diasClass = 'text-warning'; diasLabel = dias + ' días'; }
+          else { diasLabel = dias + ' días'; }
+
+          return '<tr>' +
+            '<td><strong>' + e.contribuyente_nombre + '</strong><br/><small class="text-muted">' + e.contribuyente_rfc + '</small></td>' +
+            '<td>' + (e.folio || '-') + '</td>' +
+            '<td>' + e.fecha_emision + '</td>' +
+            '<td>' + e.fecha_vencimiento + '</td>' +
+            '<td class="' + diasClass + '">' + diasLabel + '</td>' +
+            '<td><span class="badge ' + badge + '">' + e.estatus + '</span></td>' +
+            '<td class="text-end">' +
+              '<button class="btn btn-outline-warning btn-sm me-1" onclick="editEfirma(\'' + e.id + '\')" title="Editar">✏️</button>' +
+              '<button class="btn btn-outline-danger btn-sm" onclick="deleteEfirma(\'' + e.id + '\')" title="Eliminar">🗑️</button>' +
+            '</td></tr>';
+        }).join('');
+      })
+      .catch(function(e) { console.error('Error:', e); });
+  }
+
+  function openModal() {
+    document.getElementById('eId').value = '';
+    document.getElementById('eContribuyente').selectedIndex = 0;
+    document.getElementById('eTipo').value = currentTab === 'efirma' ? 'e.firma' : 'CSD';
+    document.getElementById('eFolio').value = '';
+    document.getElementById('eEmision').value = '';
+    document.getElementById('eVencimiento').value = '';
+    document.getElementById('eEstatus').selectedIndex = 0;
+    document.getElementById('eNotas').value = '';
+    document.getElementById('modalTitle').textContent = 'Nuevo Registro';
+    bsModal.show();
+  }
+
+  function editEfirma(id) {
+    fetch('/api/efirma?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(e) {
+        document.getElementById('eId').value = e.id;
+        document.getElementById('eContribuyente').value = e.contribuyente_id;
+        document.getElementById('eTipo').value = e.tipo;
+        document.getElementById('eFolio').value = e.folio || '';
+        document.getElementById('eEmision').value = e.fecha_emision;
+        document.getElementById('eVencimiento').value = e.fecha_vencimiento;
+        document.getElementById('eEstatus').value = e.estatus;
+        document.getElementById('eNotas').value = e.notas || '';
+        document.getElementById('modalTitle').textContent = 'Editar Registro';
+        bsModal.show();
+      })
+      .catch(function() { alert('Error al cargar'); });
+  }
+
+  function saveEfirma() {
+    var id = document.getElementById('eId').value;
+    var data = {
+      id: id || undefined,
+      contribuyente_id: document.getElementById('eContribuyente').value,
+      tipo: document.getElementById('eTipo').value,
+      folio: document.getElementById('eFolio').value,
+      fecha_emision: document.getElementById('eEmision').value,
+      fecha_vencimiento: document.getElementById('eVencimiento').value,
+      estatus: document.getElementById('eEstatus').value,
+      notas: document.getElementById('eNotas').value,
+    };
+    if (!data.contribuyente_id || !data.tipo || !data.fecha_emision || !data.fecha_vencimiento) {
+      alert('Contribuyente, tipo, emisión y vencimiento son obligatorios');
+      return;
+    }
+
+    var method = id ? 'PUT' : 'POST';
+    fetch('/api/efirma', {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+      if (!res.ok) { alert(res.data.error || 'Error'); return; }
+      bsModal.hide();
+      loadEfirma();
+    })
+    .catch(function() { alert('Error al guardar'); });
+  }
+
+  function deleteEfirma(id) {
+    if (!confirm('¿Eliminar este registro?')) return;
+    fetch('/api/efirma?id=' + id, { method: 'DELETE' })
+      .then(function(r) { if (r.ok) loadEfirma(); else alert('Error'); });
+  }
+
+  document.addEventListener('DOMContentLoaded', initEfirma);
+</script>

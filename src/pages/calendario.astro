@@ -1,0 +1,244 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Calendario Fiscal" activeMenu="calendario">
+  <div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-outline-primary btn-sm" onclick="changeMonth(-1)">◀</button>
+        <h5 class="mb-0" id="currentMonth">Agosto 2026</h5>
+        <button class="btn btn-outline-primary btn-sm" onclick="changeMonth(1)">▶</button>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <select class="form-select form-select-sm" style="width:200px;" id="filterContribuyente" onchange="loadCalendar()">
+          <option value="">Todos los contribuyentes</option>
+        </select>
+        <button class="btn btn-outline-secondary btn-sm" onclick="goToToday()">Hoy</button>
+      </div>
+    </div>
+
+    <div class="card-body p-2">
+      <div class="table-responsive">
+        <table class="table table-bordered mb-0 text-center" style="table-layout: fixed;">
+          <thead class="table-light">
+            <tr>
+              <th style="width:14.28%">Dom</th>
+              <th style="width:14.28%">Lun</th>
+              <th style="width:14.28%">Mar</th>
+              <th style="width:14.28%">Mié</th>
+              <th style="width:14.28%">Jue</th>
+              <th style="width:14.28%">Vie</th>
+              <th style="width:14.28%">Sáb</th>
+            </tr>
+          </thead>
+          <tbody id="calendarGrid"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header bg-white">
+      <h5 class="mb-0">Obligaciones del día: <span id="selectedDayLabel">Seleccioná un día</span></h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Contribuyente</th>
+              <th>Tipo</th>
+              <th>Periodo</th>
+              <th>Estatus</th>
+            </tr>
+          </thead>
+          <tbody id="dayObligaciones">
+            <tr><td colspan="4" class="text-center text-muted py-4">Hacé click en un día del calendario</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalle Día -->
+  <div class="modal fade" id="modalDia" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalDiaTitle">Obligaciones del día</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>Contribuyente</th><th>Tipo</th><th>Periodo</th><th>Estatus</th></tr>
+            </thead>
+            <tbody id="modalDiaContent"></tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script is:inline>
+  var currentYear = new Date().getFullYear();
+  var currentMonth = new Date().getMonth() + 1;
+  var selectedDate = null;
+  var allObligaciones = [];
+  var bsModalDia = null;
+
+  var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  function initCalendar() {
+    bsModalDia = new bootstrap.Modal(document.getElementById('modalDia'));
+    loadContribuyentesSelect();
+    loadCalendar();
+  }
+
+  function loadContribuyentesSelect() {
+    fetch('/api/contribuyentes')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var sel = document.getElementById('filterContribuyente');
+        sel.innerHTML = '<option value="">Todos los contribuyentes</option>';
+        data.forEach(function(c) {
+          sel.innerHTML += '<option value="' + c.id + '">' + c.nombre + '</option>';
+        });
+      });
+  }
+
+  function loadCalendar() {
+    var contribuyenteId = document.getElementById('filterContribuyente').value;
+    var params = new URLSearchParams();
+    params.set('mes', currentMonth);
+    params.set('anio', currentYear);
+    if (contribuyenteId) params.set('contribuyente_id', contribuyenteId);
+
+    document.getElementById('currentMonth').textContent = MESES[currentMonth - 1] + ' ' + currentYear;
+
+    fetch('/api/calendario?' + params)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        allObligaciones = data;
+        renderGrid();
+      });
+  }
+
+  function renderGrid() {
+    var firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+    var daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+    var hoy = new Date();
+    var todayStr = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+
+    var eventsByDay = {};
+    allObligaciones.forEach(function(o) {
+      var day = parseInt(o.fecha_vencimiento.split('-')[2]);
+      if (!eventsByDay[day]) eventsByDay[day] = [];
+      eventsByDay[day].push(o);
+    });
+
+    var html = '';
+    var day = 1;
+
+    for (var row = 0; row < 6; row++) {
+      if (day > daysInMonth) break;
+      html += '<tr>';
+      for (var col = 0; col < 7; col++) {
+        if ((row === 0 && col < firstDay) || day > daysInMonth) {
+          html += '<td class="text-muted" style="height:80px;"></td>';
+        } else {
+          var dateStr = currentYear + '-' + String(currentMonth).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+          var isToday = dateStr === todayStr;
+          var isSelected = dateStr === selectedDate;
+          var events = eventsByDay[day] || [];
+
+          var cellClass = '';
+          if (isSelected) cellClass = 'bg-primary text-white';
+          else if (isToday) cellClass = 'bg-light';
+
+          var borderClass = '';
+          if (events.length > 0) {
+            var hasVencida = events.some(function(e) { return e.estatus === 'Vencida'; });
+            var hasPendiente = events.some(function(e) { return e.estatus === 'Pendiente'; });
+            var hasPresentada = events.some(function(e) { return e.estatus === 'Presentada'; });
+            if (hasVencida) borderClass = 'border-start border-start-4 border-danger';
+            else if (hasPendiente) borderClass = 'border-start border-start-4 border-warning';
+            else if (hasPresentada) borderClass = 'border-start border-start-4 border-success';
+          }
+
+          html += '<td class="' + cellClass + ' ' + borderClass + '" style="height:80px; vertical-align:top; cursor:pointer; padding:6px;" onclick="selectDay(\'' + dateStr + '\')">';
+          html += '<div class="fw-bold">' + day + '</div>';
+          events.forEach(function(e) {
+            var dot = '●';
+            var dotColor = 'text-secondary';
+            if (e.estatus === 'Pendiente') dotColor = 'text-warning';
+            else if (e.estatus === 'Presentada') dotColor = 'text-success';
+            else if (e.estatus === 'Vencida') dotColor = 'text-danger';
+            html += '<div class="text-truncate ' + dotColor + '" style="font-size:0.7em;" title="' + e.contribuyente_nombre + ' - ' + e.tipo + '">';
+            html += dot + ' ' + e.tipo;
+            html += '</div>';
+          });
+          html += '</td>';
+          day++;
+        }
+      }
+      html += '</tr>';
+    }
+
+    document.getElementById('calendarGrid').innerHTML = html;
+  }
+
+  function selectDay(dateStr) {
+    selectedDate = dateStr;
+    var parts = dateStr.split('-');
+    var dayName = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][new Date(parts[0], parts[1] - 1, parts[2]).getDay()];
+    var label = dayName + ' ' + parseInt(parts[2]) + ' de ' + MESES[parseInt(parts[1]) - 1] + ' ' + parts[0];
+    document.getElementById('selectedDayLabel').textContent = label;
+
+    var dayEvents = allObligaciones.filter(function(o) {
+      return o.fecha_vencimiento === dateStr;
+    });
+
+    var tbody = document.getElementById('dayObligaciones');
+    if (!dayEvents.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Sin obligaciones este día</td></tr>';
+      renderGrid();
+      return;
+    }
+
+    tbody.innerHTML = dayEvents.map(function(o) {
+      var badge = 'bg-secondary';
+      if (o.estatus === 'Pendiente') badge = 'bg-warning text-dark';
+      else if (o.estatus === 'Presentada') badge = 'bg-success';
+      else if (o.estatus === 'Vencida') badge = 'bg-danger';
+      return '<tr><td><strong>' + o.contribuyente_nombre + '</strong><br/><small class="text-muted">' + o.contribuyente_rfc + '</small></td><td>' + o.tipo + '</td><td>' + (o.periodo || '-') + '</td><td><span class="badge ' + badge + '">' + o.estatus + '</span></td></tr>';
+    }).join('');
+
+    renderGrid();
+  }
+
+  function changeMonth(delta) {
+    currentMonth += delta;
+    if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+    if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+    selectedDate = null;
+    document.getElementById('selectedDayLabel').textContent = 'Seleccioná un día';
+    document.getElementById('dayObligaciones').innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Hacé click en un día del calendario</td></tr>';
+    loadCalendar();
+  }
+
+  function goToToday() {
+    var hoy = new Date();
+    currentYear = hoy.getFullYear();
+    currentMonth = hoy.getMonth() + 1;
+    selectedDate = null;
+    loadCalendar();
+  }
+
+  document.addEventListener('DOMContentLoaded', initCalendar);
+</script>

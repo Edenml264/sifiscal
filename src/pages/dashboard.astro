@@ -1,0 +1,128 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Dashboard" activeMenu="dashboard">
+  <div class="row g-3 mb-4">
+    <div class="col-md-4 col-lg-2">
+      <div class="card border-start border-primary border-4">
+        <div class="card-body">
+          <h4 class="mb-0" id="totalContribuyentes">0</h4>
+          <small class="text-muted">Contribuyentes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+      <div class="card border-start border-warning border-4">
+        <div class="card-body">
+          <h4 class="mb-0" id="obligacionesProximas">0</h4>
+          <small class="text-muted">Próximas</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+      <div class="card border-start border-danger border-4">
+        <div class="card-body">
+          <h4 class="mb-0" id="obligacionesVencidas">0</h4>
+          <small class="text-muted">Vencidas</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+      <div class="card border-start border-info border-4">
+        <div class="card-body">
+          <h4 class="mb-0" id="avisosPendientes">0</h4>
+          <small class="text-muted">Avisos</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+      <div class="card border-start border-success border-4">
+        <div class="card-body">
+          <h4 class="mb-0" id="efirmaProximas">0</h4>
+          <small class="text-muted">e.firma</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+      <div class="card border-start border-warning border-4">
+        <div class="card-body">
+          <h4 class="mb-0" id="csdProximos">0</h4>
+          <small class="text-muted">CSD</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Obligaciones Próximas a Vencer</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr><th>Contribuyente</th><th>Obligación</th><th>Vencimiento</th><th>Estatus</th></tr>
+              </thead>
+              <tbody id="dashboardProximas">
+                <tr><td colspan="4" class="text-center text-muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Alertas Importantes</h5>
+        </div>
+        <div class="card-body" id="dashboardAlertas">
+          <p class="text-center text-muted mb-0">Cargando alertas...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script is:inline>
+  function loadDashboard() {
+    fetch('/api/dashboard')
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        document.getElementById('totalContribuyentes').textContent = data.totalContribuyentes || 0;
+        document.getElementById('obligacionesProximas').textContent = data.obligacionesProximas || 0;
+        document.getElementById('obligacionesVencidas').textContent = data.obligacionesVencidas || 0;
+        document.getElementById('avisosPendientes').textContent = data.avisosPendientes || 0;
+        document.getElementById('efirmaProximas').textContent = data.efirmaProximas || 0;
+        document.getElementById('csdProximos').textContent = data.csdProximos || 0;
+
+        if (data.proximasObligaciones && data.proximasObligaciones.length) {
+          document.getElementById('dashboardProximas').innerHTML = data.proximasObligaciones.map(function(o) {
+            return '<tr><td>' + o.contribuyente + '</td><td>' + o.tipo + '</td><td>' + o.vencimiento + '</td><td><span class="badge bg-warning text-dark">' + o.estatus + '</span></td></tr>';
+          }).join('');
+        }
+
+        var alertas = '';
+        if (data.obligacionesVencidas > 0) {
+          alertas += '<div class="alert alert-danger py-2"><strong>' + data.obligacionesVencidas + ' vencida(s)</strong><br/>Requiere atención</div>';
+        }
+        if (data.obligacionesProximas > 0) {
+          alertas += '<div class="alert alert-warning py-2"><strong>' + data.obligacionesProximas + ' próxima(s)</strong><br/>En 30 días</div>';
+        }
+        if (data.efirmaProximas > 0) {
+          alertas += '<div class="alert alert-info py-2"><strong>' + data.efirmaProximas + ' e.firma(s)</strong> por renovar</div>';
+        }
+        if (!alertas) {
+          alertas = '<div class="alert alert-success py-2 mb-0"><strong>✅ Todo en orden</strong></div>';
+        }
+        document.getElementById('dashboardAlertas').innerHTML = alertas;
+      })
+      .catch(function(err) { console.error('Error:', err); });
+  }
+
+  loadDashboard();
+</script>

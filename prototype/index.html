@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIO Fiscal - Sistema de Control Fiscal</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #1a237e;
+            --primary-light: #3949ab;
+            --primary-dark: #0d1257;
+            --secondary: #ff6f00;
+            --success: #2e7d32;
+            --warning: #f57f17;
+            --danger: #c62828;
+            --info: #0277bd;
+            --bg: #f5f5f5;
+            --sidebar-bg: #1a237e;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --text-light: #666666;
+            --border: #e0e0e0;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar { width: 260px; background: var(--sidebar-bg); color: white; position: fixed; height: 100vh; overflow-y: auto; transition: transform 0.3s; z-index: 1000; }
+        .sidebar-header { padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h2 { font-size: 1.4em; margin-bottom: 5px; }
+        .sidebar-header p { font-size: 0.8em; opacity: 0.7; }
+        .sidebar-menu { padding: 10px 0; }
+        .menu-item { display: flex; align-items: center; padding: 12px 20px; cursor: pointer; transition: background 0.2s; border-left: 3px solid transparent; }
+        .menu-item:hover, .menu-item.active { background: rgba(255,255,255,0.1); border-left-color: var(--secondary); }
+        .menu-item i { margin-right: 12px; width: 20px; text-align: center; }
+        .menu-item span { font-size: 0.9em; }
+        .menu-section { padding: 15px 20px 5px; font-size: 0.7em; text-transform: uppercase; opacity: 0.5; letter-spacing: 1px; }
+        
+        /* Main Content */
+        .main-content { margin-left: 260px; flex: 1; min-height: 100vh; }
+        .topbar { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; }
+        .topbar h1 { font-size: 1.3em; color: var(--primary); }
+        .topbar-actions { display: flex; gap: 15px; align-items: center; }
+        .content { padding: 30px; }
+        
+        /* Cards */
+        .card { background: var(--card-bg); border-radius: 10px; box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .card-header h3 { color: var(--primary); }
+        
+        /* Dashboard Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; border-radius: 10px; padding: 20px; box-shadow: var(--shadow); border-left: 4px solid; }
+        .stat-card.primary { border-left-color: var(--primary); }
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        .stat-card.danger { border-left-color: var(--danger); }
+        .stat-card.info { border-left-color: var(--info); }
+        .stat-card h4 { font-size: 2em; margin-bottom: 5px; }
+        .stat-card p { color: var(--text-light); font-size: 0.85em; }
+        
+        /* Tables */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--primary); color: white; font-weight: 500; }
+        tr:hover { background: #f8f9fa; }
+        
+        /* Buttons */
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-info { background: var(--info); color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8em; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        
+        /* Forms */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: var(--text); }
+        .form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9em; transition: border 0.2s; }
+        .form-control:focus { outline: none; border-color: var(--primary); }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        
+        /* Badges */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: 500; }
+        .badge-success { background: #e8f5e9; color: var(--success); }
+        .badge-warning { background: #fff3e0; color: var(--warning); }
+        .badge-danger { background: #ffebee; color: var(--danger); }
+        .badge-info { background: #e1f5fe; color: var(--info); }
+        
+        /* Traffic Light */
+        .traffic-light { display: flex; gap: 8px; align-items: center; }
+        .light { width: 12px; height: 12px; border-radius: 50%; }
+        .light.green { background: var(--success); }
+        .light.yellow { background: var(--warning); }
+        .light.red { background: var(--danger); }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; border-radius: 10px; width: 90%; max-width: 700px; max-height: 85vh; overflow-y: auto; }
+        .modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { color: var(--primary); }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 15px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+        .close-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-light); }
+        
+        /* Calendar */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .calendar-header { background: var(--primary); color: white; padding: 10px; text-align: center; font-weight: 500; }
+        .calendar-day { padding: 10px; text-align: center; border: 1px solid var(--border); border-radius: 5px; min-height: 60px; cursor: pointer; }
+        .calendar-day:hover { background: #e3f2fd; }
+        .calendar-day.has-event { background: #fff3e0; }
+        .calendar-day.has-deadline { background: #ffebee; }
+        .calendar-day.today { border: 2px solid var(--primary); }
+        
+        /* Sections */
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        /* Search */
+        .search-box { position: relative; }
+        .search-box input { padding-left: 35px; }
+        .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-light); }
+        
+        /* Responsive */
+        .menu-toggle { display: none; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .menu-toggle { display: block; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        /* Login */
+        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
+        .login-box { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); width: 100%; max-width: 400px; }
+        .login-box h2 { text-align: center; color: var(--primary); margin-bottom: 30px; }
+        .login-box .btn { width: 100%; justify-content: center; padding: 12px; }
+        
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+        .tab { padding: 10px 20px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+        .tab.active { border-bottom-color: var(--primary); color: var(--primary); font-weight: 500; }
+        
+        /* Alerts */
+        .alert-list { max-height: 300px; overflow-y: auto; }
+        .alert-item { padding: 12px; border-left: 4px solid; margin-bottom: 10px; border-radius: 0 5px 5px 0; background: #fafafa; }
+        .alert-item.warning { border-left-color: var(--warning); }
+        .alert-item.danger { border-left-color: var(--danger); }
+        .alert-item.info { border-left-color: var(--info); }
+        
+        /* Empty State */
+        .empty-state { text-align: center; padding: 40px; color: var(--text-light); }
+        .empty-state i { font-size: 3em; margin-bottom: 15px; opacity: 0.3; }
+    </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="loginScreen" class="login-container">
+    <div class="login-box">
+        <h2>SIO Fiscal</h2>
+        <p style="text-align:center; color:#666; margin-bottom:25px;">Sistema de Control Fiscal</p>
+        <div class="form-group">
+            <label>Usuario</label>
+            <input type="text" id="loginUser" class="form-control" placeholder="admin">
+        </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="loginPass" class="form-control" placeholder="admin">
+        </div>
+        <button class="btn btn-primary" onclick="login()">Iniciar Sesión</button>
+        <p style="text-align:center; margin-top:15px; font-size:0.8em; color:#999;">Usuario por defecto: admin / admin</p>
+    </div>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none;">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>SIO Fiscal</h2>
+            <p>Control Fiscal 2026</p>
+        </div>
+        <nav class="sidebar-menu">
+            <div class="menu-section">Principal</div>
+            <div class="menu-item active" onclick="showSection('dashboard')">
+                <i>📊</i><span>Dashboard</span>
+            </div>
+            <div class="menu-section">Gestión</div>
+            <div class="menu-item" onclick="showSection('contribuyentes')">
+                <i>👥</i><span>Contribuyentes</span>
+            </div>
+            <div class="menu-item" onclick="showSection('obligaciones')">
+                <i>📋</i><span>Obligaciones Fiscales</span>
+            </div>
+            <div class="menu-item" onclick="showSection('calendario')">
+                <i>📅</i><span>Calendario Fiscal</span>
+            </div>
+            <div class="menu-section">Documentos</div>
+            <div class="menu-item" onclick="showSection('efirma')">
+                <i>🔐</i><span>e.firma y CSD</span>
+            </div>
+            <div class="menu-item" onclick="showSection('expediente')">
+                <i>📁</i><span>Expediente Digital</span>
+            </div>
+            <div class="menu-section">Seguimiento</div>
+            <div class="menu-item" onclick="showSection('notas')">
+                <i>📝</i><span>Notas y Seguimiento</span>
+            </div>
+            <div class="menu-section">Sistema</div>
+            <div class="menu-item" onclick="showSection('usuarios')">
+                <i>👤</i><span>Usuarios y Permisos</span>
+            </div>
+            <div class="menu-item" onclick="showSection('respaldos')">
+                <i>💾</i><span>Respaldos</span>
+            </div>
+            <div class="menu-item" onclick="showSection('reportes')">
+                <i>📈</i><span>Reportes</span>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="topbar">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <h1 id="pageTitle">Dashboard</h1>
+            <div class="topbar-actions">
+                <div class="search-box">
+                    <span>🔍</span>
+                    <input type="text" placeholder="Buscar..." style="padding:8px 12px 8px 35px; border:1px solid #ddd; border-radius:6px; width:250px;" id="globalSearch" onkeyup="globalSearchFn()">
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
+            </div>
+        </header>
+
+        <div class="content">
+            <!-- Dashboard -->
+            <div id="section-dashboard" class="section active">
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <h4 id="totalContribuyentes">0</h4>
+                        <p>Contribuyentes</p>
+                    </div>
+                    <div class="stat-card warning">
+                        <h4 id="obligacionesProximas">0</h4>
+                        <p>Obligaciones Próximas</p>
+                    </div>
+                    <div class="stat-card danger">
+                        <h4 id="obligacionesVencidas">0</h4>
+                        <p>Obligaciones Vencidas</p>
+                    </div>
+                    <div class="stat-card info">
+                        <h4 id="avisosPendientes">0</h4>
+                        <p>Avisos Pendientes</p>
+                    </div>
+                    <div class="stat-card success">
+                        <h4 id="efirmaProximas">0</h4>
+                        <p>e.firma Próximas a Vencer</p>
+                    </div>
+                    <div class="stat-card warning">
+                        <h4 id="csdProximos">0</h4>
+                        <p>CSD Próximos a Vencer</p>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Obligaciones Próximas a Vencer</h3>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr><th>Contribuyente</th><th>Obligación</th><th>Vencimiento</th><th>Estatus</th></tr>
+                                </thead>
+                                <tbody id="dashboardProximas"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Alertas Importantes</h3>
+                        </div>
+                        <div class="alert-list" id="dashboardAlertas"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contribuyentes -->
+            <div id="section-contribuyentes" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Registro de Contribuyentes</h3>
+                        <button class="btn btn-primary" onclick="openModal('contribuyente')">+ Nuevo Contribuyente</button>
+                    </div>
+                    <div class="form-row" style="margin-bottom:15px;">
+                        <div class="form-group">
+                            <input type="text" class="form-control" placeholder="Buscar por nombre, RFC, régimen..." id="filterContribuyentes" onkeyup="renderContribuyentes()">
+                        </div>
+                        <div class="form-group">
+                            <select class="form-control" id="filterRegimen" onchange="renderContribuyentes()">
+                                <option value="">Todos los regímenes</option>
+                                <option value="General">General</option>
+                                <option value="Simplificado de Confianza">Simplificado de Confianza</option>
+                                <option value="Sueldos y Salarios">Sueldos y Salarios</option>
+                                <option value="Arrendamiento">Arrendamiento</option>
+                                <option value="Actividades Empresariales">Actividades Empresariales</option>
+                                <option value="Plataformas Tecnológicas">Plataformas Tecnológicas</option>
+                                <option value="Régimen de Incorporación Fiscal">RIF</option>
+                                <option value="Enajenación de Acciones">Enajenación de Acciones</option>
+                                <option value="Dividendos">Dividendos</option>
+                                <option value="Intereses">Intereses</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Nombre/Razón Social</th><th>RFC</th><th>Régimen</th><th>Estatus</th><th>Acciones</th></tr>
+                            </thead>
+                            <tbody id="tablaContribuyentes"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Obligaciones Fiscales -->
+            <div id="section-obligaciones" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Control de Obligaciones Fiscales</h3>
+                        <button class="btn btn-primary" onclick="openModal('obligacion')">+ Nueva Obligación</button>
+                    </div>
+                    <div class="form-row" style="margin-bottom:15px;">
+                        <div class="form-group">
+                            <select class="form-control" id="filterContribOblig" onchange="renderObligaciones()">
+                                <option value="">Todos los contribuyentes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <select class="form-control" id="filterTipoOblig" onchange="renderObligaciones()">
+                                <option value="">Todos los tipos</option>
+                                <option value="ISR">ISR</option>
+                                <option value="IVA">IVA</option>
+                                <option value="Retenciones">Retenciones</option>
+                                <option value="Declaración Mensual">Declaración Mensual</option>
+                                <option value="Declaración Anual">Declaración Anual</option>
+                                <option value="DIOT">DIOT</option>
+                                <option value="Informativas">Informativas</option>
+                                <option value="Avisos al RFC">Avisos al RFC</option>
+                                <option value="Contabilidad Electrónica">Contabilidad Electrónica</option>
+                                <option value="Otras">Otras</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Contribuyente</th><th>Tipo</th><th>Periodo</th><th>Vencimiento</th><th>Estatus</th><th>Acciones</th></tr>
+                            </thead>
+                            <tbody id="tablaObligaciones"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendario Fiscal -->
+            <div id="section-calendario" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Calendario Fiscal 2026</h3>
+                        <div>
+                            <button class="btn btn-sm" onclick="changeMonth(-1)">◀</button>
+                            <span id="currentMonth" style="margin:0 15px; font-weight:bold;"></span>
+                            <button class="btn btn-sm" onclick="changeMonth(1)">▶</button>
+                        </div>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                </div>
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-header">
+                        <h3>Vencimientos del Mes</h3>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Fecha</th><th>Contribuyente</th><th>Obligación</th><th>Estatus</th></tr></thead>
+                            <tbody id="tablaVencimientosMes"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- e.firma y CSD -->
+            <div id="section-efirma" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Control de e.firma y CSD</h3>
+                        <button class="btn btn-primary" onclick="openModal('efirma')">+ Nuevo Registro</button>
+                    </div>
+                    <div class="tabs">
+                        <div class="tab active" onclick="showEfirmaTab('efirma')">e.firma</div>
+                        <div class="tab" onclick="showEfirmaTab('csd')">CSD</div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Contribuyente</th><th>Tipo</th><th>Folio</th><th>Fecha Emisión</th><th>Fecha Vencimiento</th><th>Estatus</th><th>Acciones</th></tr>
+                            </thead>
+                            <tbody id="tablaEfirma"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expediente Digital -->
+            <div id="section-expediente" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Expediente Digital</h3>
+                        <button class="btn btn-primary" onclick="openModal('documento')">+ Subir Documento</button>
+                    </div>
+                    <div class="form-group">
+                        <select class="form-control" id="filterContribDoc" onchange="renderDocumentos()" style="width:300px;">
+                            <option value="">Seleccionar contribuyente</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Nombre</th><th>Tipo</th><th>Categoría</th><th>Fecha</th><th>Acciones</th></tr>
+                            </thead>
+                            <tbody id="tablaDocumentos"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notas y Seguimiento -->
+            <div id="section-notas" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Notas y Seguimiento</h3>
+                        <button class="btn btn-primary" onclick="openModal('nota')">+ Nueva Nota</button>
+                    </div>
+                    <div class="form-group">
+                        <select class="form-control" id="filterContribNota" onchange="renderNotas()" style="width:300px;">
+                            <option value="">Seleccionar contribuyente</option>
+                        </select>
+                    </div>
+                    <div id="listaNotas"></div>
+                </div>
+            </div>
+
+            <!-- Usuarios y Permisos -->
+            <div id="section-usuarios" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Usuarios y Permisos</h3>
+                        <button class="btn btn-primary" onclick="openModal('usuario')">+ Nuevo Usuario</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Nombre</th><th>Usuario</th><th>Perfil</th><th>Permisos</th><th>Acciones</th></tr>
+                            </thead>
+                            <tbody id="tablaUsuarios"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Respaldos -->
+            <div id="section-respaldos" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Respaldos</h3>
+                    </div>
+                    <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:20px;">
+                        <button class="btn btn-primary" onclick="crearRespaldo()">💾 Respaldo Manual</button>
+                        <button class="btn btn-success" onclick="exportarDatos()">📤 Exportar Datos</button>
+                        <button class="btn btn-warning" onclick="document.getElementById('importFile').click()">📥 Importar/Restaurar</button>
+                        <input type="file" id="importFile" style="display:none" accept=".json" onchange="importarDatos(event)">
+                    </div>
+                    <div class="card-header">
+                        <h3>Historial de Respaldos</h3>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Fecha</th><th>Tipo</th><th>Tamaño</th><th>Acciones</th></tr></thead>
+                            <tbody id="tablaRespaldos"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reportes -->
+            <div id="section-reportes" class="section">
+                <div class="stats-grid">
+                    <div class="stat-card primary" style="cursor:pointer;" onclick="generarReporte('pendientes')">
+                        <h4>📋</h4>
+                        <p>Obligaciones Pendientes</p>
+                    </div>
+                    <div class="stat-card success" style="cursor:pointer;" onclick="generarReporte('presentadas')">
+                        <h4>✅</h4>
+                        <p>Obligaciones Presentadas</p>
+                    </div>
+                    <div class="stat-card warning" style="cursor:pointer;" onclick="generarReporte('vencimientos')">
+                        <h4>📅</h4>
+                        <p>Próximos Vencimientos</p>
+                    </div>
+                    <div class="stat-card danger" style="cursor:pointer;" onclick="generarReporte('efirma')">
+                        <h4>🔐</h4>
+                        <p>e.firma Próximas a Vencer</p>
+                    </div>
+                    <div class="stat-card info" style="cursor:pointer;" onclick="generarReporte('csd')">
+                        <h4>🔑</h4>
+                        <p>CSD Próximos a Vencer</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Reporte Generado</h3>
+                        <button class="btn btn-info" onclick="imprimirReporte()">🖨️ Imprimir</button>
+                    </div>
+                    <div id="reporteContenido">
+                        <div class="empty-state">
+                            <p>Selecciona un tipo de reporte para generarlo</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal Generic -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modalTitle">Modal</h3>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-footer" id="modalFooter"></div>
+    </div>
+</div>
+
+<script>
+// ============ DATA STORE ============
+let DB = {
+    contribuyentes: [],
+    obligaciones: [],
+    efirma: [],
+    documentos: [],
+    notas: [],
+    usuarios: [],
+    respaldos: [],
+    currentUser: null,
+    calendarMonth: new Date().getMonth(),
+    calendarYear: new Date().getFullYear()
+};
+
+// ============ REGIMENES FISCALES 2026 ============
+const REGIMENES = [
+    'General',
+    'Simplificado de Confianza',
+    'Sueldos y Salarios',
+    'Arrendamiento',
+    'Actividades Empresariales',
+    'Plataformas Tecnológicas',
+    'Régimen de Incorporación Fiscal',
+    'Enajenación de Acciones',
+    'Dividendos',
+    'Intereses'
+];
+
+const TIPO_OBLIGACIONES = [
+    'ISR', 'IVA', 'Retenciones', 'Declaración Mensual', 'Declaración Anual',
+    'DIOT', 'Informativas', 'Avisos al RFC', 'Contabilidad Electrónica', 'Otras'
+];
+
+const TIPO_DOCUMENTOS = [
+    'Constancia de Situación Fiscal', 'Opinión de Cumplimiento', 'Acuse de inscripción',
+    'Avisos al RFC', 'Poderes', 'Identificaciones', 'Otros'
+];
+
+const PERFILES = ['Administrador', 'Contador', 'Auxiliar', 'Consulta'];
+
+const PERMISOS_MODULOS = ['Dashboard', 'Contribuyentes', 'Obligaciones', 'Calendario', 'e.firma y CSD', 'Expediente', 'Notas', 'Usuarios', 'Respaldos', 'Reportes'];
+
+// ============ LOCAL STORAGE ============
+function saveData() { localStorage.setItem('siofiscal_data', JSON.stringify(DB)); }
+function loadData() {
+    const d = localStorage.getItem('siofiscal_data');
+    if (d) DB = JSON.parse(d);
+}
+
+// ============ AUTH ============
+function login() {
+    const user = document.getElementById('loginUser').value;
+    const pass = document.getElementById('loginPass').value;
+    
+    if (DB.usuarios.length === 0) {
+        DB.usuarios.push({ id: 1, nombre: 'Administrador', usuario: 'admin', password: 'admin', perfil: 'Administrador', permisos: [...PERMISOS_MODULOS] });
+        saveData();
+    }
+    
+    const u = DB.usuarios.find(u => u.usuario === user && u.password === pass);
+    if (u) {
+        DB.currentUser = u;
+        saveData();
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        renderDashboard();
+    } else {
+        alert('Credenciales incorrectas');
+    }
+}
+
+function logout() {
+    DB.currentUser = null;
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+}
+
+// ============ NAVIGATION ============
+function showSection(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('section-' + name).classList.add('active');
+    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    document.getElementById('pageTitle').textContent = name.charAt(0).toUpperCase() + name.slice(1).replace(/([A-Z])/g, ' $1');
+    
+    switch(name) {
+        case 'dashboard': renderDashboard(); break;
+        case 'contribuyentes': renderContribuyentes(); break;
+        case 'obligaciones': renderObligaciones(); break;
+        case 'calendario': renderCalendario(); break;
+        case 'efirma': renderEfirma(); break;
+        case 'expediente': renderDocumentos(); break;
+        case 'notas': renderNotas(); break;
+        case 'usuarios': renderUsuarios(); break;
+        case 'respaldos': renderRespaldos(); break;
+    }
+}
+
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ============ DASHBOARD ============
+function renderDashboard() {
+    document.getElementById('totalContribuyentes').textContent = DB.contribuyentes.length;
+    
+    const hoy = new Date();
+    const proximoMes = new Date(hoy);
+    proximoMes.setMonth(proximoMes.getMonth() + 1);
+    
+    let proximas = 0, vencidas = 0, avisos = 0, efirmaProx = 0, csdProx = 0;
+    
+    DB.obligaciones.forEach(o => {
+        const fecha = new Date(o.vencimiento);
+        if (o.estatus === 'Pendiente') {
+            if (fecha < hoy) vencidas++;
+            else if (fecha <= proximoMes) proximas++;
+        }
+    });
+    
+    DB.efirma.forEach(e => {
+        const fecha = new Date(e.fechaVencimiento);
+        if (e.tipo === 'e.firma' && fecha <= proximoMes && fecha >= hoy) efirmaProx++;
+        if (e.tipo === 'CSD' && fecha <= proximoMes && fecha >= hoy) csdProx++;
+    });
+    
+    DB.notas.forEach(n => { if (n.tipo === 'Aviso' && n.estatus === 'Pendiente') avisos++; });
+    
+    document.getElementById('obligacionesProximas').textContent = proximas;
+    document.getElementById('obligacionesVencidas').textContent = vencidas;
+    document.getElementById('avisosPendientes').textContent = avisos;
+    document.getElementById('efirmaProximas').textContent = efirmaProx;
+    document.getElementById('csdProximos').textContent = csdProx;
+    
+    // Tabla próximas
+    let html = '';
+    DB.obligaciones.filter(o => o.estatus === 'Pendiente').sort((a,b) => new Date(a.vencimiento) - new Date(b.vencimiento)).slice(0, 5).forEach(o => {
+        const contrib = DB.contribuyentes.find(c => c.id == o.contribuyenteId);
+        const fecha = new Date(o.vencimiento);
+        let badge = 'badge-success';
+        if (fecha < hoy) badge = 'badge-danger';
+        else if (fecha <= proximoMes) badge = 'badge-warning';
+        html += `<tr><td>${contrib ? contrib.nombre : 'N/A'}</td><td>${o.tipo}</td><td>${formatDate(o.vencimiento)}</td><td><span class="badge ${badge}">${o.estatus}</span></td></tr>`;
+    });
+    document.getElementById('dashboardProximas').innerHTML = html || '<tr><td colspan="4" style="text-align:center;">Sin obligaciones próximas</td></tr>';
+    
+    // Alertas
+    let alertHtml = '';
+    if (vencidas > 0) alertHtml += `<div class="alert-item danger"><strong>⚠️ ${vencidas} obligación(es) vencida(s)</strong><br>Requiere atención inmediata</div>`;
+    if (proximas > 0) alertHtml += `<div class="alert-item warning"><strong>📅 ${proximas} obligación(es) próxima(s) a vencer</strong><br>En los próximos 30 días</div>`;
+    if (efirmaProx > 0) alertHtml += `<div class="alert-item info"><strong>🔐 ${efirmaProx} e.firma(s) por renovar</strong><br>Verificar vigencia</div>`;
+    if (csdProx > 0) alertHtml += `<div class="alert-item info"><strong>🔑 ${csdProx} CSD(s) por renovar</strong><br>Verificar vigencia</div>`;
+    if (!alertHtml) alertHtml = '<div class="alert-item info"><strong>✅ Todo en orden</strong><br>No hay alertas pendientes</div>';
+    document.getElementById('dashboardAlertas').innerHTML = alertHtml;
+}
+
+// ============ CONTRIBUYENTES ============
+function renderContribuyentes() {
+    const filter = document.getElementById('filterContribuyentes').value.toLowerCase();
+    const regimen = document.getElementById('filterRegimen').value;
+    
+    let filtered = DB.contribuyentes.filter(c => {
+        const matchFilter = !filter || c.nombre.toLowerCase().includes(filter) || c.rfc.toLowerCase().includes(filter) || (c.regimen || '').toLowerCase().includes(filter);
+        const matchRegimen = !regimen || c.regimen === regimen;
+        return matchFilter && matchRegimen;
+    });
+    
+    let html = '';
+    filtered.forEach(c => {
+        const badge = c.estatus === 'Activo' ? 'badge-success' : 'badge-danger';
+        html += `<tr>
+            <td>${c.nombre}</td>
+            <td>${c.rfc}</td>
+            <td>${c.regimen || 'N/A'}</td>
+            <td><span class="badge ${badge}">${c.estatus}</span></td>
+            <td>
+                <button class="btn btn-info btn-sm" onclick="verContribuyente(${c.id})">👁️</button>
+                <button class="btn btn-warning btn-sm" onclick="editContribuyente(${c.id})">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteContribuyente(${c.id})">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('tablaContribuyentes').innerHTML = html || '<tr><td colspan="5" style="text-align:center;">No hay contribuyentes registrados</td></tr>';
+    
+    // Actualizar selectores
+    updateContribuyenteSelects();
+}
+
+function updateContribuyenteSelects() {
+    const selects = ['filterContribOblig', 'filterContribDoc', 'filterContribNota'];
+    selects.forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel) {
+            const current = sel.value;
+            sel.innerHTML = '<option value="">Todos los contribuyentes</option>';
+            DB.contribuyentes.forEach(c => {
+                sel.innerHTML += `<option value="${c.id}">${c.nombre} (${c.rfc})</option>`;
+            });
+            sel.value = current;
+        }
+    });
+}
+
+function editContribuyente(id) {
+    const c = DB.contribuyentes.find(x => x.id === id);
+    if (!c) return;
+    openModal('contribuyente', c);
+}
+
+function deleteContribuyente(id) {
+    if (confirm('¿Eliminar este contribuyente y todos sus registros asociados?')) {
+        DB.contribuyentes = DB.contribuyentes.filter(c => c.id !== id);
+        DB.obligaciones = DB.obligaciones.filter(o => o.contribuyenteId != id);
+        DB.efirma = DB.efirma.filter(e => e.contribuyenteId != id);
+        DB.documentos = DB.documentos.filter(d => d.contribuyenteId != id);
+        DB.notas = DB.notas.filter(n => n.contribuyenteId != id);
+        saveData();
+        renderContribuyentes();
+    }
+}
+
+function verContribuyente(id) {
+    const c = DB.contribuyentes.find(x => x.id === id);
+    if (!c) return;
+    const obligaciones = DB.obligaciones.filter(o => o.contribuyenteId == id);
+    const notas = DB.notas.filter(n => n.contribuyenteId == id);
+    
+    let html = `
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+            <div><strong>Nombre:</strong> ${c.nombre}</div>
+            <div><strong>RFC:</strong> ${c.rfc}</div>
+            <div><strong>CURP:</strong> ${c.curp || 'N/A'}</div>
+            <div><strong>Régimen:</strong> ${c.regimen || 'N/A'}</div>
+            <div><strong>Domicilio:</strong> ${c.domicilio || 'N/A'}</div>
+            <div><strong>Correo:</strong> ${c.correo || 'N/A'}</div>
+            <div><strong>Teléfono:</strong> ${c.telefono || 'N/A'}</div>
+            <div><strong>Contacto:</strong> ${c.contacto || 'N/A'}</div>
+            <div><strong>Estatus:</strong> <span class="badge ${c.estatus === 'Activo' ? 'badge-success' : 'badge-danger'}">${c.estatus}</span></div>
+        </div>
+        <hr style="margin:15px 0;">
+        <h4>Obligaciones (${obligaciones.length})</h4>
+        <ul>${obligaciones.map(o => `<li>${o.tipo} - ${o.periodo} - ${o.estatus}</li>`).join('')}</ul>
+        <h4 style="margin-top:15px;">Notas Recientes</h4>
+        <ul>${notas.slice(0,3).map(n => `<li><strong>${n.titulo}</strong>: ${n.contenido.substring(0,100)}...</li>`).join('')}</ul>
+    `;
+    
+    document.getElementById('modalTitle').textContent = c.nombre;
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalFooter').innerHTML = '<button class="btn btn-info" onclick="closeModal()">Cerrar</button>';
+    document.getElementById('modalOverlay').classList.add('active');
+}
+
+// ============ OBLIGACIONES ============
+function renderObligaciones() {
+    const contrib = document.getElementById('filterContribOblig').value;
+    const tipo = document.getElementById('filterTipoOblig').value;
+    
+    let filtered = DB.obligaciones.filter(o => {
+        const matchContrib = !contrib || o.contribuyenteId == contrib;
+        const matchTipo = !tipo || o.tipo === tipo;
+        return matchContrib && matchTipo;
+    });
+    
+    let html = '';
+    const hoy = new Date();
+    filtered.sort((a,b) => new Date(a.vencimiento) - new Date(b.vencimiento)).forEach(o => {
+        const c = DB.contribuyentes.find(x => x.id == o.contribuyenteId);
+        const fecha = new Date(o.vencimiento);
+        let badge = 'badge-success';
+        if (o.estatus === 'Pendiente' && fecha < hoy) badge = 'badge-danger';
+        else if (o.estatus === 'Pendiente') badge = 'badge-warning';
+        else if (o.estatus === 'Presentada') badge = 'badge-success';
+        else if (o.estatus === 'No Aplica') badge = 'badge-info';
+        
+        html += `<tr>
+            <td>${c ? c.nombre : 'N/A'}</td>
+            <td>${o.tipo}</td>
+            <td>${o.periodo}</td>
+            <td>${formatDate(o.vencimiento)}</td>
+            <td><span class="badge ${badge}">${o.estatus}</span></td>
+            <td>
+                <button class="btn btn-info btn-sm" onclick="editObligacion(${o.id})">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteObligacion(${o.id})">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('tablaObligaciones').innerHTML = html || '<tr><td colspan="6" style="text-align:center;">No hay obligaciones registradas</td></tr>';
+}
+
+function editObligacion(id) {
+    const o = DB.obligaciones.find(x => x.id === id);
+    if (o) openModal('obligacion', o);
+}
+
+function deleteObligacion(id) {
+    if (confirm('¿Eliminar esta obligación?')) {
+        DB.obligaciones = DB.obligaciones.filter(o => o.id !== id);
+        saveData();
+        renderObligaciones();
+    }
+}
+
+// ============ CALENDARIO ============
+function renderCalendario() {
+    const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    document.getElementById('currentMonth').textContent = `${months[DB.calendarMonth]} ${DB.calendarYear}`;
+    
+    const firstDay = new Date(DB.calendarYear, DB.calendarMonth, 1).getDay();
+    const daysInMonth = new Date(DB.calendarYear, DB.calendarMonth + 1, 0).getDate();
+    const hoy = new Date();
+    
+    let html = '';
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    dayNames.forEach(d => { html += `<div class="calendar-header">${d}</div>`; });
+    
+    for (let i = 0; i < firstDay; i++) html += '<div class="calendar-day" style="opacity:0.3;"></div>';
+    
+    for (let d = 1; d <= daysInMonth; d++) {
+        const fecha = new Date(DB.calendarYear, DB.calendarMonth, d);
+        const fechaStr = `${DB.calendarYear}-${String(DB.calendarMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isToday = d === hoy.getDate() && DB.calendarMonth === hoy.getMonth() && DB.calendarYear === hoy.getFullYear();
+        
+        const tieneObligacion = DB.obligaciones.some(o => o.vencimiento === fechaStr && o.estatus === 'Pendiente');
+        const estaVencida = DB.obligaciones.some(o => o.vencimiento === fechaStr && o.estatus === 'Pendiente' && fecha < hoy);
+        
+        let classes = 'calendar-day';
+        if (isToday) classes += ' today';
+        if (estaVencida) classes += ' has-deadline';
+        else if (tieneObligacion) classes += ' has-event';
+        
+        html += `<div class="${classes}" onclick="verDia('${fechaStr}')">${d}</div>`;
+    }
+    
+    document.getElementById('calendarGrid').innerHTML = html;
+    
+    // Vencimientos del mes
+    let tablaHtml = '';
+    DB.obligaciones.filter(o => {
+        const f = new Date(o.vencimiento);
+        return f.getMonth() === DB.calendarMonth && f.getFullYear() === DB.calendarYear;
+    }).sort((a,b) => new Date(a.vencimiento) - new Date(b.vencimiento)).forEach(o => {
+        const c = DB.contribuyentes.find(x => x.id == o.contribuyenteId);
+        const badge = o.estatus === 'Presentada' ? 'badge-success' : o.estatus === 'Vencida' ? 'badge-danger' : 'badge-warning';
+        tablaHtml += `<tr><td>${formatDate(o.vencimiento)}</td><td>${c ? c.nombre : 'N/A'}</td><td>${o.tipo}</td><td><span class="badge ${badge}">${o.estatus}</span></td></tr>`;
+    });
+    document.getElementById('tablaVencimientosMes').innerHTML = tablaHtml || '<tr><td colspan="4" style="text-align:center;">Sin vencimientos este mes</td></tr>';
+}
+
+function changeMonth(delta) {
+    DB.calendarMonth += delta;
+    if (DB.calendarMonth > 11) { DB.calendarMonth = 0; DB.calendarYear++; }
+    if (DB.calendarMonth < 0) { DB.calendarMonth = 11; DB.calendarYear--; }
+    renderCalendario();
+}
+
+function verDia(fecha) {
+    const obligaciones = DB.obligaciones.filter(o => o.vencimiento === fecha);
+    if (obligaciones.length === 0) { alert('No hay obligaciones para este día'); return; }
+    
+    let html = '<table><thead><tr><th>Contribuyente</th><th>Tipo</th><th>Estatus</th></tr></thead><tbody>';
+    obligaciones.forEach(o => {
+        const c = DB.contribuyentes.find(x => x.id == o.contribuyenteId);
+        html += `<tr><td>${c ? c.nombre : 'N/A'}</td><td>${o.tipo}</td><td>${o.estatus}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    
+    document.getElementById('modalTitle').textContent = `Obligaciones del ${formatDate(fecha)}`;
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalFooter').innerHTML = '<button class="btn btn-info" onclick="closeModal()">Cerrar</button>';
+    document.getElementById('modalOverlay').classList.add('active');
+}
+
+// ============ E.FIRMA Y CSD ============
+let efirmaTab = 'efirma';
+function showEfirmaTab(tab) {
+    efirmaTab = tab;
+    document.querySelectorAll('#section-efirma .tab').forEach(t => t.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    renderEfirma();
+}
+
+function renderEfirma() {
+    let filtered = DB.efirma.filter(e => {
+        return efirmaTab === 'efirma' ? e.tipo === 'e.firma' : e.tipo === 'CSD';
+    });
+    
+    const hoy = new Date();
+    const proximoMes = new Date();
+    proximoMes.setMonth(proximoMes.getMonth() + 1);
+    
+    let html = '';
+    filtered.forEach(e => {
+        const c = DB.contribuyentes.find(x => x.id == e.contribuyenteId);
+        const fecha = new Date(e.fechaVencimiento);
+        let badge = 'badge-success';
+        if (fecha < hoy) badge = 'badge-danger';
+        else if (fecha <= proximoMes) badge = 'badge-warning';
+        
+        html += `<tr>
+            <td>${c ? c.nombre : 'N/A'}</td>
+            <td>${e.tipo}</td>
+            <td>${e.folio}</td>
+            <td>${formatDate(e.fechaEmision)}</td>
+            <td>${formatDate(e.fechaVencimiento)}</td>
+            <td><span class="badge ${badge}">${e.estatus}</span></td>
+            <td>
+                <button class="btn btn-info btn-sm" onclick="editEfirma(${e.id})">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteEfirma(${e.id})">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('tablaEfirma').innerHTML = html || '<tr><td colspan="7" style="text-align:center;">No hay registros</td></tr>';
+}
+
+function editEfirma(id) {
+    const e = DB.efirma.find(x => x.id === id);
+    if (e) openModal('efirma', e);
+}
+
+function deleteEfirma(id) {
+    if (confirm('¿Eliminar este registro?')) {
+        DB.efirma = DB.efirma.filter(e => e.id !== id);
+        saveData();
+        renderEfirma();
+    }
+}
+
+// ============ EXPEDIENTE DIGITAL ============
+function renderDocumentos() {
+    const contrib = document.getElementById('filterContribDoc').value;
+    let filtered = DB.documentos.filter(d => !contrib || d.contribuyenteId == contrib);
+    
+    let html = '';
+    filtered.forEach(d => {
+        const c = DB.contribuyentes.find(x => x.id == d.contribuyenteId);
+        html += `<tr>
+            <td>${d.nombre}</td>
+            <td>${d.extension}</td>
+            <td>${d.categoria}</td>
+            <td>${formatDate(d.fecha)}</td>
+            <td>
+                <button class="btn btn-info btn-sm" onclick="verDocumento(${d.id})">👁️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteDocumento(${d.id})">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('tablaDocumentos').innerHTML = html || '<tr><td colspan="5" style="text-align:center;">No hay documentos</td></tr>';
+}
+
+function verDocumento(id) {
+    const d = DB.documentos.find(x => x.id === id);
+    if (!d) return;
+    
+    let html = `<p><strong>Nombre:</strong> ${d.nombre}</p>
+        <p><strong>Categoría:</strong> ${d.categoria}</p>
+        <p><strong>Fecha:</strong> ${formatDate(d.fecha)}</p>`;
+    
+    if (d.datosBase64) {
+        if (d.extension === '.pdf') {
+            html += `<iframe src="${d.datosBase64}" style="width:100%; height:400px; margin-top:15px; border:1px solid #ddd;"></iframe>`;
+        } else {
+            html += `<img src="${d.datosBase64}" style="max-width:100%; margin-top:15px; border:1px solid #ddd;">`;
+        }
+    }
+    
+    document.getElementById('modalTitle').textContent = d.nombre;
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalFooter').innerHTML = '<button class="btn btn-info" onclick="closeModal()">Cerrar</button>';
+    document.getElementById('modalOverlay').classList.add('active');
+}
+
+function deleteDocumento(id) {
+    if (confirm('¿Eliminar este documento?')) {
+        DB.documentos = DB.documentos.filter(d => d.id !== id);
+        saveData();
+        renderDocumentos();
+    }
+}
+
+// ============ NOTAS ============
+function renderNotas() {
+    const contrib = document.getElementById('filterContribNota').value;
+    let filtered = DB.notas.filter(n => !contrib || n.contribuyenteId == contrib);
+    
+    let html = '';
+    filtered.sort((a,b) => new Date(b.fecha) - new Date(a.fecha)).forEach(n => {
+        const c = DB.contribuyentes.find(x => x.id == n.contribuyenteId);
+        const tipoBadge = n.tipo === 'Pendiente' ? 'badge-warning' : n.tipo === 'Aviso' ? 'badge-danger' : 'badge-info';
+        html += `<div class="card" style="margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div>
+                    <strong>${n.titulo}</strong> <span class="badge ${tipoBadge}">${n.tipo}</span>
+                    <p style="color:#666; font-size:0.85em; margin-top:5px;">${c ? c.nombre : 'General'} - ${formatDate(n.fecha)}</p>
+                    <p style="margin-top:8px;">${n.contenido}</p>
+                </div>
+                <div>
+                    <button class="btn btn-danger btn-sm" onclick="deleteNota(${n.id})">🗑️</button>
+                </div>
+            </div>
+        </div>`;
+    });
+    document.getElementById('listaNotas').innerHTML = html || '<div class="empty-state"><p>No hay notas registradas</p></div>';
+}
+
+function deleteNota(id) {
+    if (confirm('¿Eliminar esta nota?')) {
+        DB.notas = DB.notas.filter(n => n.id !== id);
+        saveData();
+        renderNotas();
+    }
+}
+
+// ============ USUARIOS ============
+function renderUsuarios() {
+    let html = '';
+    DB.usuarios.forEach(u => {
+        html += `<tr>
+            <td>${u.nombre}</td>
+            <td>${u.usuario}</td>
+            <td><span class="badge badge-info">${u.perfil}</span></td>
+            <td>${u.permisos.join(', ')}</td>
+            <td>
+                <button class="btn btn-warning btn-sm" onclick="editUsuario(${u.id})">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteUsuario(${u.id})">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('tablaUsuarios').innerHTML = html;
+}
+
+function editUsuario(id) {
+    const u = DB.usuarios.find(x => x.id === id);
+    if (u) openModal('usuario', u);
+}
+
+function deleteUsuario(id) {
+    if (DB.usuarios.length <= 1) { alert('No se puede eliminar el único usuario'); return; }
+    if (confirm('¿Eliminar este usuario?')) {
+        DB.usuarios = DB.usuarios.filter(u => u.id !== id);
+        saveData();
+        renderUsuarios();
+    }
+}
+
+// ============ RESPALDOS ============
+function renderRespaldos() {
+    let html = '';
+    DB.respaldos.forEach(r => {
+        html += `<tr>
+            <td>${formatDate(r.fecha)}</td>
+            <td>${r.tipo}</td>
+            <td>${r.tamano}</td>
+            <td><button class="btn btn-info btn-sm" onclick="descargarRespaldo('${r.id}')">📥 Descargar</button></td>
+        </tr>`;
+    });
+    document.getElementById('tablaRespaldos').innerHTML = html || '<tr><td colspan="4" style="text-align:center;">No hay respaldos</td></tr>';
+}
+
+function crearRespaldo() {
+    const data = JSON.stringify(DB);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SIOFiscal_Respaldo_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    DB.respaldos.push({
+        id: Date.now(),
+        fecha: new Date().toISOString(),
+        tipo: 'Manual',
+        tamano: (data.length / 1024).toFixed(1) + ' KB'
+    });
+    saveData();
+    renderRespaldos();
+    alert('Respaldo creado exitosamente');
+}
+
+function exportarDatos() {
+    const data = JSON.stringify(DB, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SIOFiscal_Export_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importarDatos(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (confirm('¿Restaurar estos datos? Se sobreescribirán los actuales.')) {
+                DB = data;
+                saveData();
+                renderDashboard();
+                alert('Datos restaurados exitosamente');
+            }
+        } catch(err) { alert('Error al leer el archivo'); }
+    };
+    reader.readAsText(file);
+}
+
+function descargarRespaldo(id) {
+    alert('Función de descarga de respaldo individual');
+}
+
+// ============ REPORTES ============
+function generarReporte(tipo) {
+    let html = '';
+    const hoy = new Date();
+    
+    switch(tipo) {
+        case 'pendientes':
+            html = '<h3>Obligaciones Pendientes</h3><table><thead><tr><th>Contribuyente</th><th>Tipo</th><th>Periodo</th><th>Vencimiento</th></tr></thead><tbody>';
+            DB.obligaciones.filter(o => o.estatus === 'Pendiente').forEach(o => {
+                const c = DB.contribuyentes.find(x => x.id == o.contribuyenteId);
+                html += `<tr><td>${c ? c.nombre : 'N/A'}</td><td>${o.tipo}</td><td>${o.periodo}</td><td>${formatDate(o.vencimiento)}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            break;
+        case 'presentadas':
+            html = '<h3>Obligaciones Presentadas</h3><table><thead><tr><th>Contribuyente</th><th>Tipo</th><th>Periodo</th><th>Presentada</th></tr></thead><tbody>';
+            DB.obligaciones.filter(o => o.estatus === 'Presentada').forEach(o => {
+                const c = DB.contribuyentes.find(x => x.id == o.contribuyenteId);
+                html += `<tr><td>${c ? c.nombre : 'N/A'}</td><td>${o.tipo}</td><td>${o.periodo}</td><td>${o.fechaPresentacion ? formatDate(o.fechaPresentacion) : 'N/A'}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            break;
+        case 'vencimientos':
+            const proxMes = new Date(); proxMes.setMonth(proxMes.getMonth() + 1);
+            html = '<h3>Próximos Vencimientos (30 días)</h3><table><thead><tr><th>Contribuyente</th><th>Tipo</th><th>Vencimiento</th></tr></thead><tbody>';
+            DB.obligaciones.filter(o => { const f = new Date(o.vencimiento); return o.estatus === 'Pendiente' && f >= hoy && f <= proxMes; }).forEach(o => {
+                const c = DB.contribuyentes.find(x => x.id == o.contribuyenteId);
+                html += `<tr><td>${c ? c.nombre : 'N/A'}</td><td>${o.tipo}</td><td>${formatDate(o.vencimiento)}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            break;
+        case 'efirma':
+            html = '<h3>e.firma Próximas a Vencer</h3><table><thead><tr><th>Contribuyente</th><th>Folio</th><th>Vencimiento</th></tr></thead><tbody>';
+            DB.efirma.filter(e => e.tipo === 'e.firma').forEach(e => {
+                const c = DB.contribuyentes.find(x => x.id == e.contribuyenteId);
+                html += `<tr><td>${c ? c.nombre : 'N/A'}</td><td>${e.folio}</td><td>${formatDate(e.fechaVencimiento)}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            break;
+        case 'csd':
+            html = '<h3>CSD Próximos a Vencer</h3><table><thead><tr><th>Contribuyente</th><th>Folio</th><th>Vencimiento</th></tr></thead><tbody>';
+            DB.efirma.filter(e => e.tipo === 'CSD').forEach(e => {
+                const c = DB.contribuyentes.find(x => x.id == e.contribuyenteId);
+                html += `<tr><td>${c ? c.nombre : 'N/A'}</td><td>${e.folio}</td><td>${formatDate(e.fechaVencimiento)}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            break;
+    }
+    
+    document.getElementById('reporteContenido').innerHTML = html;
+}
+
+function imprimirReporte() {
+    const content = document.getElementById('reporteContenido').innerHTML;
+    const win = window.open('', '_blank');
+    win.document.write(`<html><head><title>Reporte SIO Fiscal</title><style>body{font-family:sans-serif;padding:20px;}table{width:100%;border-collapse:collapse;}th,td{padding:8px;border:1px solid #ddd;text-align:left;}th{background:#1a237e;color:white;}</style></head><body><h1>SIO Fiscal - Reporte</h1>${content}</body></html>`);
+    win.document.close();
+    win.print();
+}
+
+// ============ MODALS ============
+function openModal(type, data = null) {
+    document.getElementById('modalOverlay').classList.add('active');
+    let title = '', body = '', footer = '';
+    
+    switch(type) {
+        case 'contribuyente':
+            title = data ? 'Editar Contribuyente' : 'Nuevo Contribuyente';
+            body = `
+                <div class="form-row">
+                    <div class="form-group"><label>Nombre / Razón Social *</label><input class="form-control" id="cNombre" value="${data ? data.nombre : ''}"></div>
+                    <div class="form-group"><label>RFC *</label><input class="form-control" id="cRfc" value="${data ? data.rfc : ''}"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>CURP</label><input class="form-control" id="cCurp" value="${data ? data.curp || '' : ''}"></div>
+                    <div class="form-group"><label>Régimen Fiscal</label><select class="form-control" id="cRegimen">${REGIMENES.map(r => `<option ${data && data.regimen === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+                </div>
+                <div class="form-group"><label>Domicilio Fiscal</label><input class="form-control" id="cDomicilio" value="${data ? data.domicilio || '' : ''}"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Correo Electrónico</label><input class="form-control" id="cCorreo" type="email" value="${data ? data.correo || '' : ''}"></div>
+                    <div class="form-group"><label>Teléfono</label><input class="form-control" id="cTelefono" value="${data ? data.telefono || '' : ''}"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Persona de Contacto</label><input class="form-control" id="cContacto" value="${data ? data.contacto || '' : ''}"></div>
+                    <div class="form-group"><label>Estatus</label><select class="form-control" id="cEstatus"><option ${data && data.estatus === 'Activo' ? 'selected' : ''}>Activo</option><option ${data && data.estatus === 'Inactivo' ? 'selected' : ''}>Inactivo</option></select></div>
+                </div>`;
+            footer = `<button class="btn btn-info" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveContribuyente(${data ? data.id : 'null'})">Guardar</button>`;
+            break;
+            
+        case 'obligacion':
+            title = data ? 'Editar Obligación' : 'Nueva Obligación';
+            body = `
+                <div class="form-row">
+                    <div class="form-group"><label>Contribuyente *</label><select class="form-control" id="oContribuyente">${DB.contribuyentes.map(c => `<option value="${c.id}" ${data && data.contribuyenteId == c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>Tipo de Obligación *</label><select class="form-control" id="oTipo">${TIPO_OBLIGACIONES.map(t => `<option ${data && data.tipo === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Periodo</label><input class="form-control" id="oPeriodo" placeholder="Ej: Enero 2026" value="${data ? data.periodo || '' : ''}"></div>
+                    <div class="form-group"><label>Fecha de Vencimiento *</label><input type="date" class="form-control" id="oVencimiento" value="${data ? data.vencimiento : ''}"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Estatus</label><select class="form-control" id="oEstatus"><option ${data && data.estatus === 'Pendiente' ? 'selected' : ''}>Pendiente</option><option ${data && data.estatus === 'Presentada' ? 'selected' : ''}>Presentada</option><option ${data && data.estatus === 'Vencida' ? 'selected' : ''}>Vencida</option><option ${data && data.estatus === 'No Aplica' ? 'selected' : ''}>No Aplica</option></select></div>
+                    <div class="form-group"><label>Nº Operación</label><input class="form-control" id="oOperacion" value="${data ? data.operacion || '' : ''}"></div>
+                </div>
+                <div class="form-group"><label>Notas</label><textarea class="form-control" id="oNotas" rows="2">${data ? data.notas || '' : ''}</textarea></div>`;
+            footer = `<button class="btn btn-info" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveObligacion(${data ? data.id : 'null'})">Guardar</button>`;
+            break;
+            
+        case 'efirma':
+            title = data ? 'Editar Registro' : 'Nuevo Registro e.firma / CSD';
+            body = `
+                <div class="form-row">
+                    <div class="form-group"><label>Contribuyente *</label><select class="form-control" id="eContribuyente">${DB.contribuyentes.map(c => `<option value="${c.id}" ${data && data.contribuyenteId == c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>Tipo *</label><select class="form-control" id="eTipo"><option ${data && data.tipo === 'e.firma' ? 'selected' : ''}>e.firma</option><option ${data && data.tipo === 'CSD' ? 'selected' : ''}>CSD</option></select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Folio</label><input class="form-control" id="eFolio" value="${data ? data.folio || '' : ''}"></div>
+                    <div class="form-group"><label>Estatus</label><select class="form-control" id="eEstatus"><option ${data && data.estatus === 'Vigente' ? 'selected' : ''}>Vigente</option><option ${data && data.estatus === 'Por Renovar' ? 'selected' : ''}>Por Renovar</option><option ${data && data.estatus === 'Vencida' ? 'selected' : ''}>Vencida</option></select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Fecha Emisión *</label><input type="date" class="form-control" id="eEmision" value="${data ? data.fechaEmision : ''}"></div>
+                    <div class="form-group"><label>Fecha Vencimiento *</label><input type="date" class="form-control" id="eVencimiento" value="${data ? data.fechaVencimiento : ''}"></div>
+                </div>
+                <p style="color:#999; font-size:0.8em;">Por seguridad, no almacena contraseñas ni archivos sensibles de la e.firma.</p>`;
+            footer = `<button class="btn btn-info" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveEfirma(${data ? data.id : 'null'})">Guardar</button>`;
+            break;
+            
+        case 'documento':
+            title = data ? 'Editar Documento' : 'Subir Documento';
+            body = `
+                <div class="form-row">
+                    <div class="form-group"><label>Contribuyente *</label><select class="form-control" id="dContribuyente">${DB.contribuyentes.map(c => `<option value="${c.id}" ${data && data.contribuyenteId == c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>Categoría *</label><select class="form-control" id="dCategoria">${TIPO_DOCUMENTOS.map(t => `<option ${data && data.categoria === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+                </div>
+                <div class="form-group"><label>Nombre del Documento</label><input class="form-control" id="dNombre" value="${data ? data.nombre || '' : ''}"></div>
+                <div class="form-group"><label>Archivo (PDF, JPG, PNG)</label><input type="file" class="form-control" id="dArchivo" accept=".pdf,.jpg,.jpeg,.png"></div>`;
+            footer = `<button class="btn btn-info" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveDocumento()">Guardar</button>`;
+            break;
+            
+        case 'nota':
+            title = data ? 'Editar Nota' : 'Nueva Nota';
+            body = `
+                <div class="form-row">
+                    <div class="form-group"><label>Contribuyente</label><select class="form-control" id="nContribuyente"><option value="">General</option>${DB.contribuyentes.map(c => `<option value="${c.id}" ${data && data.contribuyenteId == c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>Tipo</label><select class="form-control" id="nTipo"><option ${data && data.tipo === 'Nota' ? 'selected' : ''}>Nota</option><option ${data && data.tipo === 'Pendiente' ? 'selected' : ''}>Pendiente</option><option ${data && data.tipo === 'Aviso' ? 'selected' : ''}>Aviso</option><option ${data && data.tipo === 'Observación' ? 'selected' : ''}>Observación</option></select></div>
+                </div>
+                <div class="form-group"><label>Título *</label><input class="form-control" id="nTitulo" value="${data ? data.titulo || '' : ''}"></div>
+                <div class="form-group"><label>Contenido *</label><textarea class="form-control" id="nContenido" rows="4">${data ? data.contenido || '' : ''}</textarea></div>`;
+            footer = `<button class="btn btn-info" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNota(${data ? data.id : 'null'})">Guardar</button>`;
+            break;
+            
+        case 'usuario':
+            title = data ? 'Editar Usuario' : 'Nuevo Usuario';
+            body = `
+                <div class="form-row">
+                    <div class="form-group"><label>Nombre *</label><input class="form-control" id="uNombre" value="${data ? data.nombre : ''}"></div>
+                    <div class="form-group"><label>Usuario *</label><input class="form-control" id="uUsuario" value="${data ? data.usuario : ''}"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Contraseña *</label><input type="password" class="form-control" id="uPassword" value="${data ? data.password : ''}"></div>
+                    <div class="form-group"><label>Perfil *</label><select class="form-control" id="uPerfil">${PERFILES.map(p => `<option ${data && data.perfil === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+                </div>
+                <div class="form-group"><label>Permisos</label><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">${PERMISOS_MODULOS.map(m => `<label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" class="uPermiso" value="${m}" ${data && data.permisos.includes(m) ? 'checked' : ''}> ${m}</label>`).join('')}</div></div>`;
+            footer = `<button class="btn btn-info" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveUsuario(${data ? data.id : 'null'})">Guardar</button>`;
+            break;
+    }
+    
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = body;
+    document.getElementById('modalFooter').innerHTML = footer;
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+// ============ SAVE FUNCTIONS ============
+function generateId() { return Date.now() + Math.floor(Math.random() * 1000); }
+
+function saveContribuyente(id) {
+    const obj = {
+        id: id || generateId(),
+        nombre: document.getElementById('cNombre').value,
+        rfc: document.getElementById('cRfc').value,
+        curp: document.getElementById('cCurp').value,
+        regimen: document.getElementById('cRegimen').value,
+        domicilio: document.getElementById('cDomicilio').value,
+        correo: document.getElementById('cCorreo').value,
+        telefono: document.getElementById('cTelefono').value,
+        contacto: document.getElementById('cContacto').value,
+        estatus: document.getElementById('cEstatus').value
+    };
+    
+    if (!obj.nombre || !obj.rfc) { alert('Nombre y RFC son obligatorios'); return; }
+    
+    if (id) { const idx = DB.contribuyentes.findIndex(c => c.id === id); DB.contribuyentes[idx] = obj; }
+    else DB.contribuyentes.push(obj);
+    
+    saveData(); closeModal(); renderContribuyentes();
+}
+
+function saveObligacion(id) {
+    const obj = {
+        id: id || generateId(),
+        contribuyenteId: document.getElementById('oContribuyente').value,
+        tipo: document.getElementById('oTipo').value,
+        periodo: document.getElementById('oPeriodo').value,
+        vencimiento: document.getElementById('oVencimiento').value,
+        estatus: document.getElementById('oEstatus').value,
+        operacion: document.getElementById('oOperacion').value,
+        notas: document.getElementById('oNotas').value
+    };
+    
+    if (!obj.contribuyenteId || !obj.vencimiento) { alert('Contribuyente y vencimiento son obligatorios'); return; }
+    
+    if (id) { const idx = DB.obligaciones.findIndex(o => o.id === id); DB.obligaciones[idx] = obj; }
+    else DB.obligaciones.push(obj);
+    
+    saveData(); closeModal(); renderObligaciones();
+}
+
+function saveEfirma(id) {
+    const obj = {
+        id: id || generateId(),
+        contribuyenteId: document.getElementById('eContribuyente').value,
+        tipo: document.getElementById('eTipo').value,
+        folio: document.getElementById('eFolio').value,
+        estatus: document.getElementById('eEstatus').value,
+        fechaEmision: document.getElementById('eEmision').value,
+        fechaVencimiento: document.getElementById('eVencimiento').value
+    };
+    
+    if (!obj.contribuyenteId || !obj.fechaVencimiento) { alert('Contribuyente y fecha de vencimiento son obligatorios'); return; }
+    
+    if (id) { const idx = DB.efirma.findIndex(e => e.id === id); DB.efirma[idx] = obj; }
+    else DB.efirma.push(obj);
+    
+    saveData(); closeModal(); renderEfirma();
+}
+
+function saveDocumento() {
+    const archivo = document.getElementById('dArchivo').files[0];
+    const obj = {
+        id: generateId(),
+        contribuyenteId: document.getElementById('dContribuyente').value,
+        categoria: document.getElementById('dCategoria').value,
+        nombre: document.getElementById('dNombre').value || (archivo ? archivo.name : 'Documento'),
+        extension: archivo ? '.' + archivo.name.split('.').pop() : '',
+        fecha: new Date().toISOString(),
+        datosBase64: null
+    };
+    
+    if (!obj.contribuyenteId) { alert('Selecciona un contribuyente'); return; }
+    
+    if (archivo) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            obj.datosBase64 = e.target.result;
+            DB.documentos.push(obj);
+            saveData(); closeModal(); renderDocumentos();
+        };
+        reader.readAsDataURL(archivo);
+    } else {
+        DB.documentos.push(obj);
+        saveData(); closeModal(); renderDocumentos();
+    }
+}
+
+function saveNota(id) {
+    const obj = {
+        id: id || generateId(),
+        contribuyenteId: document.getElementById('nContribuyente').value,
+        tipo: document.getElementById('nTipo').value,
+        titulo: document.getElementById('nTitulo').value,
+        contenido: document.getElementById('nContenido').value,
+        fecha: new Date().toISOString()
+    };
+    
+    if (!obj.titulo || !obj.contenido) { alert('Título y contenido son obligatorios'); return; }
+    
+    if (id) { const idx = DB.notas.findIndex(n => n.id === id); DB.notas[idx] = obj; }
+    else DB.notas.push(obj);
+    
+    saveData(); closeModal(); renderNotas();
+}
+
+function saveUsuario(id) {
+    const permisos = [...document.querySelectorAll('.uPermiso:checked')].map(c => c.value);
+    const obj = {
+        id: id || generateId(),
+        nombre: document.getElementById('uNombre').value,
+        usuario: document.getElementById('uUsuario').value,
+        password: document.getElementById('uPassword').value,
+        perfil: document.getElementById('uPerfil').value,
+        permisos: permisos
+    };
+    
+    if (!obj.nombre || !obj.usuario || !obj.password) { alert('Todos los campos son obligatorios'); return; }
+    
+    if (id) { const idx = DB.usuarios.findIndex(u => u.id === id); DB.usuarios[idx] = obj; }
+    else DB.usuarios.push(obj);
+    
+    saveData(); closeModal(); renderUsuarios();
+}
+
+// ============ UTILS ============
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function globalSearchFn() {
+    const q = document.getElementById('globalSearch').value.toLowerCase();
+    if (!q) return;
+    
+    const results = DB.contribuyentes.filter(c => c.nombre.toLowerCase().includes(q) || c.rfc.toLowerCase().includes(q));
+    if (results.length > 0) {
+        showSection('contribuyentes');
+        document.getElementById('filterContribuyentes').value = q;
+        renderContribuyentes();
+    }
+}
+
+// ============ INIT ============
+loadData();
+if (DB.currentUser) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    renderDashboard();
+}
+</script>
+</body>
+</html>

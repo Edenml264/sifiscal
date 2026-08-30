@@ -1,0 +1,303 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Expediente Digital">
+  <div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3 mb-0"><i class="bi bi-folder2-open me-2"></i>Expediente Digital</h1>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+        <i class="bi bi-upload me-1"></i>Subir Documento
+      </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Contribuyente</label>
+            <select id="filterContribuyente" class="form-select">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Categoría</label>
+            <select id="filterCategoria" class="form-select">
+              <option value="">Todas</option>
+              <option value="Constancia de Situación Fiscal">Constancia de Situación Fiscal</option>
+              <option value="Opinión de Cumplimiento">Opinión de Cumplimiento</option>
+              <option value="Acuse de Inscripción">Acuse de Inscripción</option>
+              <option value="Avisos al RFC">Avisos al RFC</option>
+              <option value="Poderes">Poderes</option>
+              <option value="Identificaciones">Identificaciones</option>
+              <option value="Otros">Otros</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button id="btnBuscar" class="btn btn-outline-primary w-100">Buscar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de documentos -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul me-1"></i>Documentos</span>
+        <span id="totalDocs" class="badge bg-primary">0</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Contribuyente</th>
+                <th>Categoría</th>
+                <th>Tipo</th>
+                <th>Fecha</th>
+                <th class="text-center" style="width: 120px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="documentosTable">
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">Cargando documentos...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Subir Documento -->
+  <div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Subir Documento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="uploadForm">
+            <div class="mb-3">
+              <label class="form-label">Contribuyente <span class="text-danger">*</span></label>
+              <select id="uploadContribuyente" class="form-select" required>
+                <option value="">Seleccionar contribuyente</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Nombre del documento <span class="text-danger">*</span></label>
+              <input type="text" id="uploadNombre" class="form-control" placeholder="Ej: Constancia Situación Fiscal 2026" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Categoría <span class="text-danger">*</span></label>
+              <select id="uploadCategoria" class="form-select" required>
+                <option value="">Seleccionar categoría</option>
+                <option value="Constancia de Situación Fiscal">Constancia de Situación Fiscal</option>
+                <option value="Opinión de Cumplimiento">Opinión de Cumplimiento</option>
+                <option value="Acuse de Inscripción">Acuse de Inscripción</option>
+                <option value="Avisos al RFC">Avisos al RFC</option>
+                <option value="Poderes">Poderes</option>
+                <option value="Identificaciones">Identificaciones</option>
+                <option value="Otros">Otros</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Archivo <span class="text-danger">*</span></label>
+              <input type="file" id="uploadArchivo" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required />
+              <div class="form-text">Formatos aceptados: PDF, JPG, PNG (máx. 5MB)</div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" id="btnUpload" class="btn btn-primary">
+            <i class="bi bi-cloud-upload me-1"></i>Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ver Documento -->
+  <div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="viewModalTitle">Documento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center" id="viewModalBody">
+          <p class="text-muted">Cargando...</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <a id="btnDescargar" href="#" class="btn btn-primary" download>
+            <i class="bi bi-download me-1"></i>Descargar
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script is:inline>
+  let contribuyentes = [];
+  let documentos = [];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadContribuyentes();
+    loadDocumentos();
+  });
+
+  async function loadContribuyentes() {
+    try {
+      const res = await fetch('/api/contribuyentes');
+      contribuyentes = await res.json();
+      const options = contribuyentes.map(c => '<option value="' + c.id + '">' + c.nombre + ' (' + c.rfc + ')</option>').join('');
+      document.getElementById('filterContribuyente').innerHTML = '<option value="">Todos</option>' + options;
+      document.getElementById('uploadContribuyente').innerHTML = '<option value="">Seleccionar contribuyente</option>' + options;
+    } catch (e) {
+      console.error('Error loading contribuyentes:', e);
+    }
+  }
+
+  async function loadDocumentos() {
+    try {
+      const contribuyenteId = document.getElementById('filterContribuyente').value;
+      const categoria = document.getElementById('filterCategoria').value;
+      let url = '/api/documentos?';
+      if (contribuyenteId) url += 'contribuyente_id=' + contribuyenteId + '&';
+      if (categoria) url += 'categoria=' + categoria;
+
+      const res = await fetch(url);
+      documentos = await res.json();
+      renderTable();
+    } catch (e) {
+      console.error('Error loading documentos:', e);
+    }
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('documentosTable');
+    document.getElementById('totalDocs').textContent = documentos.length;
+
+    if (documentos.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron documentos</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = documentos.map(function(doc) {
+      const fecha = new Date(doc.created_at).toLocaleDateString('es-MX');
+      const icon = getIcon(doc.tipo_archivo);
+      return '<tr>' +
+        '<td><i class="' + icon + ' me-2"></i>' + doc.nombre + '</td>' +
+        '<td>' + doc.contribuyente_nombre + '<br><small class="text-muted">' + doc.contribuyente_rfc + '</small></td>' +
+        '<td><span class="badge bg-secondary">' + doc.categoria + '</span></td>' +
+        '<td>' + (doc.tipo_archivo || '-') + '</td>' +
+        '<td>' + fecha + '</td>' +
+        '<td class="text-center">' +
+          '<button class="btn btn-sm btn-outline-primary me-1" onclick="viewDocument(\'' + doc.id + '\')" title="Ver"><i class="bi bi-eye"></i></button>' +
+          '<button class="btn btn-sm btn-outline-danger" onclick="deleteDocument(\'' + doc.id + '\')" title="Eliminar"><i class="bi bi-trash"></i></button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function getIcon(tipo) {
+    if (tipo && tipo.includes('pdf')) return 'bi bi-file-earmark-pdf text-danger';
+    if (tipo && tipo.includes('image')) return 'bi bi-file-earmark-image text-success';
+    return 'bi bi-file-earmark text-primary';
+  }
+
+  document.getElementById('btnBuscar').addEventListener('click', loadDocumentos);
+
+  document.getElementById('btnUpload').addEventListener('click', async function() {
+    const contribuyenteId = document.getElementById('uploadContribuyente').value;
+    const nombre = document.getElementById('uploadNombre').value;
+    const categoria = document.getElementById('uploadCategoria').value;
+    const archivo = document.getElementById('uploadArchivo').files[0];
+
+    if (!contribuyenteId || !nombre || !categoria || !archivo) {
+      alert('Todos los campos son obligatorios');
+      return;
+    }
+
+    if (archivo.size > 5 * 1024 * 1024) {
+      alert('El archivo no puede superar 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const base64 = e.target.result;
+      try {
+        const res = await fetch('/api/documentos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contribuyente_id: contribuyenteId,
+            nombre: nombre,
+            categoria: categoria,
+            tipo_archivo: archivo.type,
+            datos_base64: base64,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+          document.getElementById('uploadForm').reset();
+          loadDocumentos();
+        } else {
+          alert(data.error || 'Error al guardar');
+        }
+      } catch (e) {
+        alert('Error de conexión');
+      }
+    };
+    reader.readAsDataURL(archivo);
+  });
+
+  async function viewDocument(id) {
+    try {
+      const res = await fetch('/api/documentos?id=' + id);
+      const doc = await res.json();
+      document.getElementById('viewModalTitle').textContent = doc.nombre;
+
+      let content = '';
+      if (doc.tipo_archivo && doc.tipo_archivo.includes('image')) {
+        content = '<img src="' + doc.datos_base64 + '" class="img-fluid" />';
+      } else if (doc.tipo_archivo && doc.tipo_archivo.includes('pdf')) {
+        content = '<iframe src="' + doc.datos_base64 + '" style="width:100%;height:500px;border:none;"></iframe>';
+      } else {
+        content = '<p class="text-muted">Vista previa no disponible para este tipo de archivo</p>';
+      }
+      document.getElementById('viewModalBody').innerHTML = content;
+
+      const btnDescargar = document.getElementById('btnDescargar');
+      btnDescargar.href = doc.datos_base64;
+      btnDescargar.download = doc.nombre;
+
+      new bootstrap.Modal(document.getElementById('viewModal')).show();
+    } catch (e) {
+      alert('Error al cargar documento');
+    }
+  }
+
+  async function deleteDocument(id) {
+    if (!confirm('¿Estás seguro de eliminar este documento?')) return;
+    try {
+      const res = await fetch('/api/documentos?id=' + id, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        loadDocumentos();
+      } else {
+        alert(data.error || 'Error al eliminar');
+      }
+    } catch (e) {
+      alert('Error de conexión');
+    }
+  }
+</script>

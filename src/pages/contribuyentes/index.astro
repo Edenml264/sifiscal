@@ -1,0 +1,285 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+
+const REGIMENES = [
+  'General de Ley Personas Morales',
+  'Personas Morales con Fines no Lucrativos',
+  'Sueldos y Salarios',
+  'Arrendamiento',
+  'Actividades Empresariales y Profesionales',
+  'Actividades Empresariales con Ingresos Aceptados',
+  'Sociedades de Producción Aceptada',
+  'Simplificado de Confianza',
+  'Incorporación Fiscal',
+  'Enajenación o Adquisición de Inmuebles',
+  'Depósitos en Efectivo',
+  'Sociedades Cooperativas de Producción',
+  'Plataformas Tecnológicas',
+  'Enajenación de Acciones',
+  'Dividendos',
+  'Intereses',
+  'Premios',
+  'Fideicomisos',
+];
+---
+
+<DashboardLayout title="Contribuyentes" activeMenu="contribuyentes">
+  <div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Registro de Contribuyentes</h5>
+      <button class="btn btn-primary" onclick="openModal()">+ Nuevo Contribuyente</button>
+    </div>
+
+    <div class="card-body">
+      <div class="row g-3 mb-3">
+        <div class="col-md-8">
+          <input type="text" class="form-control" placeholder="Buscar por nombre o RFC..." id="searchInput" oninput="loadContribuyentes()" />
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" id="filterRegimen" onchange="loadContribuyentes()">
+            <option value="">Todos los regímenes</option>
+            {REGIMENES.map(r => <option value={r}>{r}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Nombre / Razón Social</th>
+              <th>RFC</th>
+              <th>Régimen Fiscal</th>
+              <th>Estatus</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tablaContribuyentes">
+            <tr><td colspan="5" class="text-center text-muted">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Contribuyente -->
+  <div class="modal fade" id="modalContribuyente" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Nuevo Contribuyente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="contribuyenteForm">
+            <input type="hidden" id="cId" />
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="form-label">Nombre / Razón Social *</label>
+                <input type="text" class="form-control" id="cNombre" required />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">RFC *</label>
+                <input type="text" class="form-control" id="cRfc" maxlength="13" style="text-transform:uppercase;" required />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">CURP</label>
+                <input type="text" class="form-control" id="cCurp" maxlength="18" style="text-transform:uppercase;" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Régimen Fiscal *</label>
+                <select class="form-select" id="cRegimen" required>
+                  {REGIMENES.map(r => <option value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Domicilio Fiscal</label>
+                <input type="text" class="form-control" id="cDomicilio" />
+              </div>
+              <div class="col-md-5">
+                <label class="form-label">Correo Electrónico</label>
+                <input type="email" class="form-control" id="cCorreo" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Teléfono</label>
+                <input type="tel" class="form-control" id="cTelefono" />
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Estatus</label>
+                <select class="form-select" id="cEstatus">
+                  <option value="Activo">Activo</option>
+                  <option value="Inactivo">Inactivo</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Persona de Contacto</label>
+                <input type="text" class="form-control" id="cContacto" />
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="saveContribuyente()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalle -->
+  <div class="modal fade" id="modalDetalle" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalle del Contribuyente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="detalleContent">
+          <p class="text-center text-muted">Cargando...</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script is:inline>
+  var bsModal = null;
+  var bsDetalle = null;
+
+  function initModals() {
+    bsModal = new bootstrap.Modal(document.getElementById('modalContribuyente'));
+    bsDetalle = new bootstrap.Modal(document.getElementById('modalDetalle'));
+  }
+
+  function loadContribuyentes() {
+    var search = document.getElementById('searchInput').value;
+    var regimen = document.getElementById('filterRegimen').value;
+    var params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (regimen) params.set('regimen', regimen);
+
+    fetch('/api/contribuyentes?' + params)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var tbody = document.getElementById('tablaContribuyentes');
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay contribuyentes registrados</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(function(c) {
+          var badge = c.estatus === 'Activo' ? 'bg-success' : 'bg-danger';
+          return '<tr>' +
+            '<td><strong>' + c.nombre + '</strong></td>' +
+            '<td><code>' + c.rfc + '</code></td>' +
+            '<td>' + c.regimen_fiscal + '</td>' +
+            '<td><span class="badge ' + badge + '">' + c.estatus + '</span></td>' +
+            '<td class="text-end">' +
+              '<button class="btn btn-outline-info btn-sm me-1" onclick="verDetalle(\'' + c.id + '\')" title="Ver">👁️</button>' +
+              '<button class="btn btn-outline-warning btn-sm me-1" onclick="editContribuyente(\'' + c.id + '\')" title="Editar">✏️</button>' +
+              '<button class="btn btn-outline-danger btn-sm" onclick="deleteContribuyente(\'' + c.id + '\', \'' + c.nombre.replace(/'/g, "\\'") + '\')" title="Eliminar">🗑️</button>' +
+            '</td></tr>';
+        }).join('');
+      })
+      .catch(function(e) { console.error('Error:', e); });
+  }
+
+  function openModal() {
+    document.getElementById('cId').value = '';
+    document.getElementById('cNombre').value = '';
+    document.getElementById('cRfc').value = '';
+    document.getElementById('cCurp').value = '';
+    document.getElementById('cRegimen').selectedIndex = 0;
+    document.getElementById('cDomicilio').value = '';
+    document.getElementById('cCorreo').value = '';
+    document.getElementById('cTelefono').value = '';
+    document.getElementById('cContacto').value = '';
+    document.getElementById('cEstatus').selectedIndex = 0;
+    document.getElementById('modalTitle').textContent = 'Nuevo Contribuyente';
+    bsModal.show();
+  }
+
+  function editContribuyente(id) {
+    fetch('/api/contribuyentes?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(c) {
+        document.getElementById('cId').value = c.id;
+        document.getElementById('cNombre').value = c.nombre;
+        document.getElementById('cRfc').value = c.rfc;
+        document.getElementById('cCurp').value = c.curp || '';
+        document.getElementById('cDomicilio').value = c.domicilio || '';
+        document.getElementById('cCorreo').value = c.correo || '';
+        document.getElementById('cTelefono').value = c.telefono || '';
+        document.getElementById('cContacto').value = c.contacto || '';
+        document.getElementById('cRegimen').value = c.regimen_fiscal;
+        document.getElementById('cEstatus').value = c.estatus;
+        document.getElementById('modalTitle').textContent = 'Editar Contribuyente';
+        bsModal.show();
+      })
+      .catch(function() { alert('Error al cargar'); });
+  }
+
+  function saveContribuyente() {
+    var id = document.getElementById('cId').value;
+    var data = {
+      id: id || undefined,
+      nombre: document.getElementById('cNombre').value,
+      rfc: document.getElementById('cRfc').value,
+      curp: document.getElementById('cCurp').value,
+      regimen_fiscal: document.getElementById('cRegimen').value,
+      domicilio: document.getElementById('cDomicilio').value,
+      correo: document.getElementById('cCorreo').value,
+      telefono: document.getElementById('cTelefono').value,
+      contacto: document.getElementById('cContacto').value,
+      estatus: document.getElementById('cEstatus').value,
+    };
+    if (!data.nombre || !data.rfc) { alert('Nombre y RFC son obligatorios'); return; }
+
+    var method = id ? 'PUT' : 'POST';
+    fetch('/api/contribuyentes', {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+      if (!res.ok) { alert(res.data.error || 'Error'); return; }
+      bsModal.hide();
+      loadContribuyentes();
+    })
+    .catch(function() { alert('Error al guardar'); });
+  }
+
+  function deleteContribuyente(id, nombre) {
+    if (!confirm('¿Eliminar a "' + nombre + '"?\nSe eliminarán sus obligaciones, documentos y notas.')) return;
+    fetch('/api/contribuyentes?id=' + id, { method: 'DELETE' })
+      .then(function(r) { if (r.ok) loadContribuyentes(); else alert('Error'); });
+  }
+
+  function verDetalle(id) {
+    fetch('/api/contribuyentes?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(c) {
+        var badge = c.estatus === 'Activo' ? 'bg-success' : 'bg-danger';
+        document.getElementById('detalleContent').innerHTML =
+          '<div class="row g-3">' +
+            '<div class="col-6"><strong>Nombre:</strong><br/>' + c.nombre + '</div>' +
+            '<div class="col-6"><strong>RFC:</strong><br/><code>' + c.rfc + '</code></div>' +
+            '<div class="col-6"><strong>CURP:</strong><br/>' + (c.curp || 'N/A') + '</div>' +
+            '<div class="col-6"><strong>Régimen:</strong><br/>' + c.regimen_fiscal + '</div>' +
+            '<div class="col-6"><strong>Domicilio:</strong><br/>' + (c.domicilio || 'N/A') + '</div>' +
+            '<div class="col-6"><strong>Correo:</strong><br/>' + (c.correo || 'N/A') + '</div>' +
+            '<div class="col-6"><strong>Teléfono:</strong><br/>' + (c.telefono || 'N/A') + '</div>' +
+            '<div class="col-6"><strong>Contacto:</strong><br/>' + (c.contacto || 'N/A') + '</div>' +
+            '<div class="col-12"><strong>Estatus:</strong> <span class="badge ' + badge + '">' + c.estatus + '</span></div>' +
+          '</div>';
+        bsDetalle.show();
+      })
+      .catch(function() { alert('Error al cargar'); });
+  }
+
+  document.addEventListener('DOMContentLoaded', initModals);
+  loadContribuyentes();
+</script>

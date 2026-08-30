@@ -1,0 +1,47 @@
+---
+interface Props {
+  activeMenu: string;
+  user: { nombre: string; perfil: string };
+}
+
+const { activeMenu, user } = Astro.props;
+
+const menuItems = [
+  { section: 'Principal' },
+  { id: 'dashboard', label: 'Dashboard', icon: '📊', href: '/dashboard' },
+  { section: 'Gestión' },
+  { id: 'contribuyentes', label: 'Contribuyentes', icon: '👥', href: '/contribuyentes' },
+  { id: 'obligaciones', label: 'Obligaciones', icon: '📋', href: '/obligaciones' },
+  { id: 'calendario', label: 'Calendario', icon: '📅', href: '/calendario' },
+  { section: 'Documentos' },
+  { id: 'efirma', label: 'e.firma / CSD', icon: '🔐', href: '/efirma' },
+  { id: 'expediente', label: 'Expediente', icon: '📁', href: '/expediente' },
+  { section: 'Seguimiento' },
+  { id: 'notas', label: 'Notas', icon: '📝', href: '/notas' },
+  { section: 'Sistema' },
+  { id: 'usuarios', label: 'Usuarios', icon: '👤', href: '/usuarios' },
+  { id: 'respaldos', label: 'Respaldos', icon: '💾', href: '/respaldos' },
+  { id: 'reportes', label: 'Reportes', icon: '📈', href: '/reportes' },
+];
+---
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h2>SIFiscal</h2>
+    <p>Control Fiscal 2026</p>
+  </div>
+
+  <nav class="sidebar-menu">
+    {menuItems.map(item => {
+      if ('section' in item) {
+        return <div class="menu-section">{item.section}</div>;
+      }
+      return (
+        <a href={item.href} class={`menu-item ${activeMenu === item.id ? 'active' : ''}`}>
+          <span>{item.icon}</span>
+          <small>{item.label}</small>
+        </a>
+      );
+    })}
+  </nav>
+</aside>
