@@ -24,15 +24,14 @@ Stack: Astro JS + Turso + Bootstrap 5
 | 11 | Respaldos | ✅ Completada | `api/respaldos.ts`, `respaldos.astro` |
 | 12 | Reportes | ✅ Completada | `api/reportes.ts`, `reportes.astro` |
 | 13 | Procesador XML (CFDI 4.0) | ✅ Completada | `api/facturas.ts`, `facturas.astro` |
+| 14 | Vista Centralizada Contribuyente | ✅ Completada | `contribuyentes/[id].astro` (5 tabs) |
 
 ### Pendientes Técnicos (Producción)
 
 | # | Pendiente | Prioridad | Descripción |
 |---|-----------|-----------|-------------|
-| 1 | Bcrypt para contraseñas | Alta | Actualmente usa SHA-256 |
-| 2 | Paginación en tablas | Media | Sin paginación actualmente |
-| 3 | Tests unitarios | Media | No hay tests |
-| 4 | Optimización de documentos | Baja | Almacena en base64 (pesado) |
+| 1 | Paginación en más tablas | Media | Solo contribuyentes tiene paginación |
+| 2 | Exportar a Excel | Baja | Descargar reportes en XLSX |
 
 ---
 

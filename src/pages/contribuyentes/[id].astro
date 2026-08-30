@@ -7,32 +7,416 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <a href="/contribuyentes" class="btn btn-outline-secondary btn-sm">← Volver al listado</a>
   </div>
 
-  <div class="card">
+  <!-- Información del Contribuyente -->
+  <div class="card mb-4">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
       <h5 class="mb-0" id="contribNombre">Cargando...</h5>
+      <span id="contribEstatus"></span>
     </div>
     <div class="card-body" id="contribDetalle">
       <p class="text-center text-muted">Cargando información...</p>
     </div>
   </div>
 
-  <div class="row g-4 mt-2">
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-header bg-white"><h6 class="mb-0">Obligaciones Fiscales</h6></div>
-        <div class="card-body text-center text-muted">Módulo en desarrollo</div>
+  <!-- Tabs de módulos -->
+  <div class="card">
+    <div class="card-header bg-white p-0">
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" data-bs-toggle="tab" href="#tabObligaciones" role="tab">
+            <i class="bi bi-list-check me-1"></i>Obligaciones
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tabEfirma" role="tab">
+            <i class="bi bi-key me-1"></i>e.firma / CSD
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tabExpediente" role="tab">
+            <i class="bi bi-folder me-1"></i>Expediente
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tabNotas" role="tab">
+            <i class="bi bi-journal-text me-1"></i>Notas
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tabFacturas" role="tab">
+            <i class="bi bi-file-earmark-code me-1"></i>Facturas
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div class="card-body">
+      <div class="tab-content">
+        <!-- Tab Obligaciones -->
+        <div class="tab-pane fade show active" id="tabObligaciones" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Obligaciones Fiscales</h6>
+            <button class="btn btn-primary btn-sm" onclick="openModalObligacion()">
+              <i class="bi bi-plus me-1"></i>Nueva Obligación
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>Tipo</th>
+                  <th>Periodo</th>
+                  <th>Vencimiento</th>
+                  <th>Estatus</th>
+                  <th>Operación</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaObligaciones">
+                <tr><td colspan="6" class="text-center text-muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab e.firma / CSD -->
+        <div class="tab-pane fade" id="tabEfirma" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">e.firma y Certificados de Sello Digital</h6>
+            <button class="btn btn-primary btn-sm" onclick="openModalEfirma()">
+              <i class="bi bi-plus me-1"></i>Nuevo Registro
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>Tipo</th>
+                  <th>Folio</th>
+                  <th>Emisión</th>
+                  <th>Vencimiento</th>
+                  <th>Días</th>
+                  <th>Estatus</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaEfirma">
+                <tr><td colspan="7" class="text-center text-muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab Expediente -->
+        <div class="tab-pane fade" id="tabExpediente" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Expediente Digital</h6>
+            <button class="btn btn-primary btn-sm" onclick="openModalDocumento()">
+              <i class="bi bi-upload me-1"></i>Subir Documento
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>Nombre</th>
+                  <th>Categoría</th>
+                  <th>Tipo</th>
+                  <th>Fecha</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaDocumentos">
+                <tr><td colspan="5" class="text-center text-muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab Notas -->
+        <div class="tab-pane fade" id="tabNotas" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Notas y Seguimiento</h6>
+            <button class="btn btn-primary btn-sm" onclick="openModalNota()">
+              <i class="bi bi-plus me-1"></i>Nueva Nota
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>Tipo</th>
+                  <th>Título</th>
+                  <th>Estatus</th>
+                  <th>Fecha</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaNotas">
+                <tr><td colspan="5" class="text-center text-muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab Facturas -->
+        <div class="tab-pane fade" id="tabFacturas" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Facturas CFDI 4.0</h6>
+            <button class="btn btn-primary btn-sm" onclick="openModalFactura()">
+              <i class="bi bi-upload me-1"></i>Cargar XML
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>UUID</th>
+                  <th>Tipo</th>
+                  <th>Emisor</th>
+                  <th>Receptor</th>
+                  <th>Total</th>
+                  <th>Método</th>
+                  <th>Estatus</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaFacturas">
+                <tr><td colspan="8" class="text-center text-muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-header bg-white"><h6 class="mb-0">Expediente Digital</h6></div>
-        <div class="card-body text-center text-muted">Módulo en desarrollo</div>
+  </div>
+
+  <!-- Modal Obligación -->
+  <div class="modal fade" id="modalObligacion" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalObligacionTitle">Nueva Obligación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="obligacionForm">
+            <input type="hidden" id="oId" />
+            <div class="mb-3">
+              <label class="form-label">Tipo *</label>
+              <select id="oTipo" class="form-select" required>
+                <option value="">Seleccionar</option>
+                <option value="ISR">ISR</option>
+                <option value="IVA">IVA</option>
+                <option value="Retenciones">Retenciones</option>
+                <option value="Declaración Mensual">Declaración Mensual</option>
+                <option value="Declaración Anual">Declaración Anual</option>
+                <option value="DIOT">DIOT</option>
+                <option value="Informativas">Informativas</option>
+                <option value="Avisos al RFC">Avisos al RFC</option>
+                <option value="Contabilidad Electrónica">Contabilidad Electrónica</option>
+                <option value="Otras">Otras</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Periodo</label>
+              <input type="text" id="oPeriodo" class="form-control" placeholder="Ej: Enero 2026" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Fecha de Vencimiento *</label>
+              <input type="date" id="oVencimiento" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Estatus</label>
+              <select id="oEstatus" class="form-select">
+                <option value="Pendiente">Pendiente</option>
+                <option value="Presentada">Presentada</option>
+                <option value="Vencida">Vencida</option>
+                <option value="No Aplica">No Aplica</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Número de Operación</label>
+              <input type="text" id="oOperacion" class="form-control" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notas</label>
+              <textarea id="oNotas" class="form-control" rows="2"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="saveObligacion()">Guardar</button>
+        </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-header bg-white"><h6 class="mb-0">Notas y Seguimiento</h6></div>
-        <div class="card-body text-center text-muted">Módulo en desarrollo</div>
+  </div>
+
+  <!-- Modal e.firma -->
+  <div class="modal fade" id="modalEfirma" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEfirmaTitle">Nuevo Registro e.firma/CSD</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="efirmaForm">
+            <input type="hidden" id="eId" />
+            <div class="mb-3">
+              <label class="form-label">Tipo *</label>
+              <select id="eTipo" class="form-select" required>
+                <option value="e.firma">e.firma</option>
+                <option value="CSD">CSD</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Folio</label>
+              <input type="text" id="eFolio" class="form-control" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Fecha de Emisión *</label>
+              <input type="date" id="eEmision" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Fecha de Vencimiento *</label>
+              <input type="date" id="eVencimiento" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Estatus</label>
+              <select id="eEstatus" class="form-select">
+                <option value="Vigente">Vigente</option>
+                <option value="Por Renovar">Por Renovar</option>
+                <option value="Vencida">Vencida</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notas</label>
+              <textarea id="eNotas" class="form-control" rows="2"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="saveEfirma()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Documento -->
+  <div class="modal fade" id="modalDocumento" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Subir Documento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="documentoForm">
+            <div class="mb-3">
+              <label class="form-label">Nombre del documento *</label>
+              <input type="text" id="dNombre" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Categoría *</label>
+              <select id="dCategoria" class="form-select" required>
+                <option value="">Seleccionar</option>
+                <option value="Constancia de Situación Fiscal">Constancia de Situación Fiscal</option>
+                <option value="Opinión de Cumplimiento">Opinión de Cumplimiento</option>
+                <option value="Acuse de Inscripción">Acuse de Inscripción</option>
+                <option value="Avisos al RFC">Avisos al RFC</option>
+                <option value="Poderes">Poderes</option>
+                <option value="Identificaciones">Identificaciones</option>
+                <option value="Otros">Otros</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Archivo * (PDF, JPG, PNG - máx. 5MB)</label>
+              <input type="file" id="dArchivo" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required />
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="saveDocumento()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nota -->
+  <div class="modal fade" id="modalNota" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalNotaTitle">Nueva Nota</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="notaForm">
+            <input type="hidden" id="nId" />
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Tipo *</label>
+                <select id="nTipo" class="form-select" required>
+                  <option value="Nota">Nota</option>
+                  <option value="Pendiente">Pendiente</option>
+                  <option value="Observación">Observación</option>
+                  <option value="Historial">Historial</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Estatus</label>
+                <select id="nEstatus" class="form-select">
+                  <option value="Activo">Activo</option>
+                  <option value="Completado">Completado</option>
+                  <option value="Cancelado">Cancelado</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Título *</label>
+              <input type="text" id="nTitulo" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Contenido *</label>
+              <textarea id="nContenido" class="form-control" rows="4" required></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="saveNota()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Factura XML -->
+  <div class="modal fade" id="modalFactura" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Cargar CFDI 4.0</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="facturaForm">
+            <div class="mb-3">
+              <label class="form-label">RFC del contribuyente *</label>
+              <input type="text" id="fRFC" class="form-control" readonly />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Archivo XML *</label>
+              <input type="file" id="fXML" class="form-control" accept=".xml" required />
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="saveFactura()">Procesar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -40,43 +424,473 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <script is:inline>
   var contribuyenteId = window.location.pathname.split('/').pop();
+  var contribuyenteRFC = '';
+  var bsModals = {};
 
-  function loadDetalle() {
+  function initModals() {
+    bsModals.obligacion = new bootstrap.Modal(document.getElementById('modalObligacion'));
+    bsModals.efirma = new bootstrap.Modal(document.getElementById('modalEfirma'));
+    bsModals.documento = new bootstrap.Modal(document.getElementById('modalDocumento'));
+    bsModals.nota = new bootstrap.Modal(document.getElementById('modalNota'));
+    bsModals.factura = new bootstrap.Modal(document.getElementById('modalFactura'));
+  }
+
+  // ==================== CARGAR DATOS DEL CONTRIBUYENTE ====================
+  function loadContribuyente() {
     fetch('/api/contribuyentes?id=' + contribuyenteId)
-      .then(function(r) {
-        if (!r.ok) throw new Error('No encontrado');
-        return r.json();
-      })
+      .then(function(r) { return r.json(); })
       .then(function(c) {
+        contribuyenteRFC = c.rfc;
         document.getElementById('contribNombre').textContent = c.nombre + ' (' + c.rfc + ')';
         var badge = c.estatus === 'Activo' ? 'bg-success' : 'bg-danger';
+        document.getElementById('contribEstatus').innerHTML = '<span class="badge ' + badge + '">' + c.estatus + '</span>';
         document.getElementById('contribDetalle').innerHTML =
-          '<div class="row g-4">' +
-            '<div class="col-md-6">' +
-              '<h6 class="text-primary">Datos Generales</h6>' +
-              '<table class="table table-sm">' +
-                '<tr><td class="fw-bold">Nombre</td><td>' + c.nombre + '</td></tr>' +
-                '<tr><td class="fw-bold">RFC</td><td><code>' + c.rfc + '</code></td></tr>' +
-                '<tr><td class="fw-bold">CURP</td><td>' + (c.curp || 'N/A') + '</td></tr>' +
-                '<tr><td class="fw-bold">Régimen</td><td>' + c.regimen_fiscal + '</td></tr>' +
-                '<tr><td class="fw-bold">Estatus</td><td><span class="badge ' + badge + '">' + c.estatus + '</span></td></tr>' +
-              '</table>' +
-            '</div>' +
-            '<div class="col-md-6">' +
-              '<h6 class="text-primary">Contacto</h6>' +
-              '<table class="table table-sm">' +
-                '<tr><td class="fw-bold">Domicilio</td><td>' + (c.domicilio || 'N/A') + '</td></tr>' +
-                '<tr><td class="fw-bold">Correo</td><td>' + (c.correo || 'N/A') + '</td></tr>' +
-                '<tr><td class="fw-bold">Teléfono</td><td>' + (c.telefono || 'N/A') + '</td></tr>' +
-                '<tr><td class="fw-bold">Contacto</td><td>' + (c.contacto || 'N/A') + '</td></tr>' +
-              '</table>' +
-            '</div>' +
+          '<div class="row g-3">' +
+            '<div class="col-md-3"><strong>RFC:</strong><br/><code>' + c.rfc + '</code></div>' +
+            '<div class="col-md-3"><strong>CURP:</strong><br/>' + (c.curp || 'N/A') + '</div>' +
+            '<div class="col-md-3"><strong>Régimen:</strong><br/>' + c.regimen_fiscal + '</div>' +
+            '<div class="col-md-3"><strong>Domicilio:</strong><br/>' + (c.domicilio || 'N/A') + '</div>' +
+            '<div class="col-md-3"><strong>Correo:</strong><br/>' + (c.correo || 'N/A') + '</div>' +
+            '<div class="col-md-3"><strong>Teléfono:</strong><br/>' + (c.telefono || 'N/A') + '</div>' +
+            '<div class="col-md-3"><strong>Contacto:</strong><br/>' + (c.contacto || 'N/A') + '</div>' +
           '</div>';
+        document.getElementById('fRFC').value = c.rfc;
       })
       .catch(function() {
         document.getElementById('contribDetalle').innerHTML = '<div class="alert alert-danger">Contribuyente no encontrado</div>';
       });
   }
 
-  loadDetalle();
+  // ==================== OBLIGACIONES ====================
+  function loadObligaciones() {
+    fetch('/api/obligaciones?contribuyente_id=' + contribuyenteId)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var tbody = document.getElementById('tablaObligaciones');
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay obligaciones registradas</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(function(o) {
+          var badge = o.estatus === 'Presentada' ? 'bg-success' : o.estatus === 'Vencida' ? 'bg-danger' : 'bg-warning text-dark';
+          return '<tr>' +
+            '<td>' + o.tipo + '</td>' +
+            '<td>' + (o.periodo || '-') + '</td>' +
+            '<td>' + o.fecha_vencimiento + '</td>' +
+            '<td><span class="badge ' + badge + '">' + o.estatus + '</span></td>' +
+            '<td>' + (o.numero_operacion || '-') + '</td>' +
+            '<td class="text-center">' +
+              '<button class="btn btn-outline-warning btn-sm me-1" onclick="editObligacion(\'' + o.id + '\')" title="Editar">✏️</button>' +
+              '<button class="btn btn-outline-danger btn-sm" onclick="deleteObligacion(\'' + o.id + '\')" title="Eliminar">🗑️</button>' +
+            '</td></tr>';
+        }).join('');
+      });
+  }
+
+  function openModalObligacion() {
+    document.getElementById('oId').value = '';
+    document.getElementById('oTipo').selectedIndex = 0;
+    document.getElementById('oPeriodo').value = '';
+    document.getElementById('oVencimiento').value = '';
+    document.getElementById('oEstatus').selectedIndex = 0;
+    document.getElementById('oOperacion').value = '';
+    document.getElementById('oNotas').value = '';
+    document.getElementById('modalObligacionTitle').textContent = 'Nueva Obligación';
+    bsModals.obligacion.show();
+  }
+
+  function editObligacion(id) {
+    fetch('/api/obligaciones?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(o) {
+        document.getElementById('oId').value = o.id;
+        document.getElementById('oTipo').value = o.tipo;
+        document.getElementById('oPeriodo').value = o.periodo || '';
+        document.getElementById('oVencimiento').value = o.fecha_vencimiento;
+        document.getElementById('oEstatus').value = o.estatus;
+        document.getElementById('oOperacion').value = o.numero_operacion || '';
+        document.getElementById('oNotas').value = o.notas || '';
+        document.getElementById('modalObligacionTitle').textContent = 'Editar Obligación';
+        bsModals.obligacion.show();
+      });
+  }
+
+  function saveObligacion() {
+    var id = document.getElementById('oId').value;
+    var data = {
+      contribuyente_id: contribuyenteId,
+      tipo: document.getElementById('oTipo').value,
+      periodo: document.getElementById('oPeriodo').value,
+      fecha_vencimiento: document.getElementById('oVencimiento').value,
+      estatus: document.getElementById('oEstatus').value,
+      numero_operacion: document.getElementById('oOperacion').value,
+      notas: document.getElementById('oNotas').value,
+    };
+    if (!data.tipo || !data.fecha_vencimiento) { alert('Tipo y vencimiento son obligatorios'); return; }
+    if (id) data.id = id;
+
+    fetch('/api/obligaciones', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.error) { alert(res.error); return; }
+      bsModals.obligacion.hide();
+      loadObligaciones();
+    });
+  }
+
+  function deleteObligacion(id) {
+    if (!confirm('¿Eliminar esta obligación?')) return;
+    fetch('/api/obligaciones?id=' + id, { method: 'DELETE' })
+      .then(function(r) { if (r.ok) loadObligaciones(); });
+  }
+
+  // ==================== E.FIRMA / CSD ====================
+  function loadEfirma() {
+    fetch('/api/efirma?contribuyente_id=' + contribuyenteId)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var tbody = document.getElementById('tablaEfirma');
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No hay registros de e.firma/CSD</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(function(e) {
+          var hoy = new Date();
+          var venc = new Date(e.fecha_vencimiento);
+          var dias = Math.ceil((venc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+          var badge = e.estatus === 'Vigente' ? 'bg-success' : e.estatus === 'Vencida' ? 'bg-danger' : 'bg-warning text-dark';
+          var diasBadge = dias <= 30 ? 'text-danger fw-bold' : 'text-muted';
+          return '<tr>' +
+            '<td>' + e.tipo + '</td>' +
+            '<td>' + (e.folio || '-') + '</td>' +
+            '<td>' + e.fecha_emision + '</td>' +
+            '<td>' + e.fecha_vencimiento + '</td>' +
+            '<td class="' + diasBadge + '">' + dias + ' días</td>' +
+            '<td><span class="badge ' + badge + '">' + e.estatus + '</span></td>' +
+            '<td class="text-center">' +
+              '<button class="btn btn-outline-warning btn-sm me-1" onclick="editEfirma(\'' + e.id + '\')" title="Editar">✏️</button>' +
+              '<button class="btn btn-outline-danger btn-sm" onclick="deleteEfirma(\'' + e.id + '\')" title="Eliminar">🗑️</button>' +
+            '</td></tr>';
+        }).join('');
+      });
+  }
+
+  function openModalEfirma() {
+    document.getElementById('eId').value = '';
+    document.getElementById('eTipo').selectedIndex = 0;
+    document.getElementById('eFolio').value = '';
+    document.getElementById('eEmision').value = '';
+    document.getElementById('eVencimiento').value = '';
+    document.getElementById('eEstatus').selectedIndex = 0;
+    document.getElementById('eNotas').value = '';
+    document.getElementById('modalEfirmaTitle').textContent = 'Nuevo Registro e.firma/CSD';
+    bsModals.efirma.show();
+  }
+
+  function editEfirma(id) {
+    fetch('/api/efirma?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(e) {
+        document.getElementById('eId').value = e.id;
+        document.getElementById('eTipo').value = e.tipo;
+        document.getElementById('eFolio').value = e.folio || '';
+        document.getElementById('eEmision').value = e.fecha_emision;
+        document.getElementById('eVencimiento').value = e.fecha_vencimiento;
+        document.getElementById('eEstatus').value = e.estatus;
+        document.getElementById('eNotas').value = e.notas || '';
+        document.getElementById('modalEfirmaTitle').textContent = 'Editar e.firma/CSD';
+        bsModals.efirma.show();
+      });
+  }
+
+  function saveEfirma() {
+    var id = document.getElementById('eId').value;
+    var data = {
+      contribuyente_id: contribuyenteId,
+      tipo: document.getElementById('eTipo').value,
+      folio: document.getElementById('eFolio').value,
+      fecha_emision: document.getElementById('eEmision').value,
+      fecha_vencimiento: document.getElementById('eVencimiento').value,
+      estatus: document.getElementById('eEstatus').value,
+      notas: document.getElementById('eNotas').value,
+    };
+    if (!data.fecha_emision || !data.fecha_vencimiento) { alert('Emisión y vencimiento son obligatorios'); return; }
+    if (id) data.id = id;
+
+    fetch('/api/efirma', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.error) { alert(res.error); return; }
+      bsModals.efirma.hide();
+      loadEfirma();
+    });
+  }
+
+  function deleteEfirma(id) {
+    if (!confirm('¿Eliminar este registro?')) return;
+    fetch('/api/efirma?id=' + id, { method: 'DELETE' })
+      .then(function(r) { if (r.ok) loadEfirma(); });
+  }
+
+  // ==================== EXPEDIENTE ====================
+  function loadDocumentos() {
+    fetch('/api/documentos?contribuyente_id=' + contribuyenteId)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var tbody = document.getElementById('tablaDocumentos');
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay documentos en el expediente</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(function(d) {
+          var fecha = new Date(d.created_at).toLocaleDateString('es-MX');
+          return '<tr>' +
+            '<td>' + d.nombre + '</td>' +
+            '<td><span class="badge bg-secondary">' + d.categoria + '</span></td>' +
+            '<td>' + (d.tipo_archivo || '-') + '</td>' +
+            '<td>' + fecha + '</td>' +
+            '<td class="text-center">' +
+              '<button class="btn btn-outline-primary btn-sm me-1" onclick="viewDocumento(\'' + d.id + '\')" title="Ver">👁️</button>' +
+              '<button class="btn btn-outline-danger btn-sm" onclick="deleteDocumento(\'' + d.id + '\')" title="Eliminar">🗑️</button>' +
+            '</td></tr>';
+        }).join('');
+      });
+  }
+
+  function openModalDocumento() {
+    document.getElementById('dNombre').value = '';
+    document.getElementById('dCategoria').selectedIndex = 0;
+    document.getElementById('dArchivo').value = '';
+    bsModals.documento.show();
+  }
+
+  function saveDocumento() {
+    var nombre = document.getElementById('dNombre').value;
+    var categoria = document.getElementById('dCategoria').value;
+    var archivo = document.getElementById('dArchivo').files[0];
+    if (!nombre || !categoria || !archivo) { alert('Todos los campos son obligatorios'); return; }
+    if (archivo.size > 5 * 1024 * 1024) { alert('El archivo no puede superar 5MB'); return; }
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      fetch('/api/documentos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contribuyente_id: contribuyenteId,
+          nombre: nombre,
+          categoria: categoria,
+          tipo_archivo: archivo.type,
+          datos_base64: e.target.result,
+        }),
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res.error) { alert(res.error); return; }
+        bsModals.documento.hide();
+        loadDocumentos();
+      });
+    };
+    reader.readAsDataURL(archivo);
+  }
+
+  function viewDocumento(id) {
+    fetch('/api/documentos?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var content = '';
+        if (d.tipo_archivo && d.tipo_archivo.includes('image')) {
+          content = '<img src="' + d.datos_base64 + '" class="img-fluid" />';
+        } else if (d.tipo_archivo && d.tipo_archivo.includes('pdf')) {
+          content = '<iframe src="' + d.datos_base64 + '" style="width:100%;height:500px;border:none;"></iframe>';
+        } else {
+          content = '<p>Vista previa no disponible</p>';
+        }
+        alert('Documento: ' + d.nombre + '\nCategoría: ' + d.categoria);
+      });
+  }
+
+  function deleteDocumento(id) {
+    if (!confirm('¿Eliminar este documento?')) return;
+    fetch('/api/documentos?id=' + id, { method: 'DELETE' })
+      .then(function(r) { if (r.ok) loadDocumentos(); });
+  }
+
+  // ==================== NOTAS ====================
+  function loadNotas() {
+    fetch('/api/notas?contribuyente_id=' + contribuyenteId)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var tbody = document.getElementById('tablaNotas');
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay notas registradas</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(function(n) {
+          var fecha = new Date(n.created_at).toLocaleDateString('es-MX');
+          var tipoBadge = n.tipo === 'Pendiente' ? 'bg-warning text-dark' : n.tipo === 'Observación' ? 'bg-info' : 'bg-primary';
+          var estatusBadge = n.estatus === 'Completado' ? 'bg-success' : n.estatus === 'Cancelado' ? 'bg-danger' : 'bg-secondary';
+          return '<tr>' +
+            '<td><span class="badge ' + tipoBadge + '">' + n.tipo + '</span></td>' +
+            '<td><strong>' + n.titulo + '</strong></td>' +
+            '<td><span class="badge ' + estatusBadge + '">' + n.estatus + '</span></td>' +
+            '<td>' + fecha + '</td>' +
+            '<td class="text-center">' +
+              '<button class="btn btn-outline-info btn-sm me-1" onclick="viewNota(\'' + n.id + '\')" title="Ver">👁️</button>' +
+              '<button class="btn btn-outline-warning btn-sm me-1" onclick="editNota(\'' + n.id + '\')" title="Editar">✏️</button>' +
+              '<button class="btn btn-outline-danger btn-sm" onclick="deleteNota(\'' + n.id + '\')" title="Eliminar">🗑️</button>' +
+            '</td></tr>';
+        }).join('');
+      });
+  }
+
+  function openModalNota() {
+    document.getElementById('nId').value = '';
+    document.getElementById('nTipo').selectedIndex = 0;
+    document.getElementById('nEstatus').selectedIndex = 0;
+    document.getElementById('nTitulo').value = '';
+    document.getElementById('nContenido').value = '';
+    document.getElementById('modalNotaTitle').textContent = 'Nueva Nota';
+    bsModals.nota.show();
+  }
+
+  function editNota(id) {
+    fetch('/api/notas?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(n) {
+        document.getElementById('nId').value = n.id;
+        document.getElementById('nTipo').value = n.tipo;
+        document.getElementById('nEstatus').value = n.estatus;
+        document.getElementById('nTitulo').value = n.titulo;
+        document.getElementById('nContenido').value = n.contenido;
+        document.getElementById('modalNotaTitle').textContent = 'Editar Nota';
+        bsModals.nota.show();
+      });
+  }
+
+  function viewNota(id) {
+    fetch('/api/notas?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(n) {
+        alert('Tipo: ' + n.tipo + '\nTítulo: ' + n.titulo + '\nEstatus: ' + n.estatus + '\n\n' + n.contenido);
+      });
+  }
+
+  function saveNota() {
+    var id = document.getElementById('nId').value;
+    var data = {
+      contribuyente_id: contribuyenteId,
+      tipo: document.getElementById('nTipo').value,
+      titulo: document.getElementById('nTitulo').value,
+      contenido: document.getElementById('nContenido').value,
+      estatus: document.getElementById('nEstatus').value,
+    };
+    if (!data.titulo || !data.contenido) { alert('Título y contenido son obligatorios'); return; }
+    if (id) data.id = id;
+
+    fetch('/api/notas', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.error) { alert(res.error); return; }
+      bsModals.nota.hide();
+      loadNotas();
+    });
+  }
+
+  function deleteNota(id) {
+    if (!confirm('¿Eliminar esta nota?')) return;
+    fetch('/api/notas?id=' + id, { method: 'DELETE' })
+      .then(function(r) { if (r.ok) loadNotas(); });
+  }
+
+  // ==================== FACTURAS ====================
+  function loadFacturas() {
+    fetch('/api/facturas?contribuyente_id=' + contribuyenteId)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var tbody = document.getElementById('tablaFacturas');
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay facturas registradas</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(function(f) {
+          var tipoBadge = f.tipo_movimiento === 'ingreso' ? 'bg-success' : 'bg-danger';
+          var metodoBadge = f.metodo_pago === 'PUE' ? 'bg-info' : 'bg-warning text-dark';
+          var estatusBadge = f.estatus === 'pagada' ? 'bg-success' : 'bg-secondary';
+          return '<tr>' +
+            '<td><code class="small">' + f.uuid.substring(0, 8) + '...</code></td>' +
+            '<td><span class="badge ' + tipoBadge + '">' + f.tipo_movimiento + '</span></td>' +
+            '<td>' + f.rfc_emisor + '</td>' +
+            '<td>' + f.rfc_receptor + '</td>' +
+            '<td><strong>$' + (f.total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</strong></td>' +
+            '<td><span class="badge ' + metodoBadge + '">' + f.metodo_pago + '</span></td>' +
+            '<td><span class="badge ' + estatusBadge + '">' + f.estatus + '</span></td>' +
+            '<td class="text-center">' +
+              '<button class="btn btn-outline-danger btn-sm" onclick="deleteFactura(\'' + f.id + '\')" title="Eliminar">🗑️</button>' +
+            '</td></tr>';
+        }).join('');
+      });
+  }
+
+  function openModalFactura() {
+    document.getElementById('fRFC').value = contribuyenteRFC;
+    document.getElementById('fXML').value = '';
+    bsModals.factura.show();
+  }
+
+  function saveFactura() {
+    var fileInput = document.getElementById('fXML');
+    var file = fileInput.files[0];
+    if (!file) { alert('Selecciona un archivo XML'); return; }
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      fetch('/api/facturas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          xml: e.target.result,
+          contribuyente_id: contribuyenteId,
+          rfc_usuario: contribuyenteRFC,
+        }),
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res.error) { alert(res.error); return; }
+        alert('Factura procesada: ' + res.tipo_movimiento + ' - Total: $' + res.total);
+        bsModals.factura.hide();
+        loadFacturas();
+      });
+    };
+    reader.readAsText(file);
+  }
+
+  function deleteFactura(id) {
+    if (!confirm('¿Eliminar esta factura?')) return;
+    fetch('/api/facturas?id=' + id, { method: 'DELETE' })
+      .then(function(r) { if (r.ok) loadFacturas(); });
+  }
+
+  // ==================== INICIALIZACIÓN ====================
+  document.addEventListener('DOMContentLoaded', function() {
+    initModals();
+    loadContribuyente();
+    loadObligaciones();
+    loadEfirma();
+    loadDocumentos();
+    loadNotas();
+    loadFacturas();
+  });
 </script>
