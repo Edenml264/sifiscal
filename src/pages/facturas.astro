@@ -1,0 +1,296 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Procesador XML">
+  <div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3 mb-0"><i class="bi bi-file-earmark-code me-2"></i>Procesador XML (CFDI 4.0)</h1>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+        <i class="bi bi-upload me-1"></i>Cargar XML
+      </button>
+    </div>
+
+    <!-- Resumen -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="card bg-success text-white">
+          <div class="card-body">
+            <h6 class="card-title">Ingresos</h6>
+            <h3 id="totalIngresos">$0.00</h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-danger text-white">
+          <div class="card-body">
+            <h6 class="card-title">Egresos</h6>
+            <h3 id="totalEgresos">$0.00</h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-primary text-white">
+          <div class="card-body">
+            <h6 class="card-title">IVA Trasladado</h6>
+            <h3 id="totalIVA">$0.00</h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+          <div class="card-body">
+            <h6 class="card-title">Total Facturas</h6>
+            <h3 id="totalFacturas">0</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Contribuyente</label>
+            <select id="filterContribuyente" class="form-select">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Tipo</label>
+            <select id="filterTipo" class="form-select">
+              <option value="">Todos</option>
+              <option value="ingreso">Ingreso</option>
+              <option value="egreso">Egreso</option>
+            </select>
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button id="btnBuscar" class="btn btn-outline-primary w-100">Buscar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de facturas -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul me-1"></i>Facturas CFDI 4.0</span>
+        <span id="totalDocs" class="badge bg-primary">0</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>UUID</th>
+                <th>Tipo</th>
+                <th>Emisor</th>
+                <th>Receptor</th>
+                <th>Subtotal</th>
+                <th>IVA</th>
+                <th>Total</th>
+                <th>Método</th>
+                <th>Estatus</th>
+                <th class="text-center" style="width: 80px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="facturasTable">
+              <tr>
+                <td colspan="10" class="text-center py-4 text-muted">Cargando facturas...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cargar XML -->
+  <div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Cargar CFDI 4.0</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="uploadForm">
+            <div class="mb-3">
+              <label class="form-label">Contribuyente <span class="text-danger">*</span></label>
+              <select id="uploadContribuyente" class="form-select" required>
+                <option value="">Seleccionar contribuyente</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">RFC del contribuyente <span class="text-danger">*</span></label>
+              <input type="text" id="uploadRFC" class="form-control" placeholder="RFC para clasificar Ingreso/Egreso" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Archivo XML <span class="text-danger">*</span></label>
+              <input type="file" id="uploadXML" class="form-control" accept=".xml" required />
+              <div class="form-text">Solo archivos CFDI 4.0 del SAT</div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" id="btnUpload" class="btn btn-primary">
+            <i class="bi bi-cpu me-1"></i>Procesar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script is:inline>
+  let contribuyentes = [];
+  let facturas = [];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadContribuyentes();
+    loadFacturas();
+  });
+
+  async function loadContribuyentes() {
+    try {
+      const res = await fetch('/api/contribuyentes');
+      contribuyentes = await res.json();
+      const options = contribuyentes.map(function(c) {
+        return '<option value="' + c.id + '" data-rfc="' + c.rfc + '">' + c.nombre + ' (' + c.rfc + ')</option>';
+      }).join('');
+      document.getElementById('filterContribuyente').innerHTML = '<option value="">Todos</option>' + options;
+      document.getElementById('uploadContribuyente').innerHTML = '<option value="">Seleccionar contribuyente</option>' + options;
+    } catch (e) {
+      console.error('Error loading contribuyentes:', e);
+    }
+  }
+
+  async function loadFacturas() {
+    try {
+      const contribuyenteId = document.getElementById('filterContribuyente').value;
+      const tipo = document.getElementById('filterTipo').value;
+      let url = '/api/facturas?';
+      if (contribuyenteId) url += 'contribuyente_id=' + contribuyenteId + '&';
+      if (tipo) url += 'tipo=' + tipo;
+
+      const res = await fetch(url);
+      facturas = await res.json();
+      renderTable();
+      updateSummary();
+    } catch (e) {
+      console.error('Error loading facturas:', e);
+    }
+  }
+
+  function updateSummary() {
+    const ingresos = facturas.filter(function(f) { return f.tipo_movimiento === 'ingreso'; });
+    const egresos = facturas.filter(function(f) { return f.tipo_movimiento === 'egreso'; });
+
+    const totalIngresos = ingresos.reduce(function(sum, f) { return sum + (f.total || 0); }, 0);
+    const totalEgresos = egresos.reduce(function(sum, f) { return sum + (f.total || 0); }, 0);
+    const totalIVA = facturas.reduce(function(sum, f) { return sum + (f.iva_trasladado || 0); }, 0);
+
+    document.getElementById('totalIngresos').textContent = '$' + totalIngresos.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+    document.getElementById('totalEgresos').textContent = '$' + totalEgresos.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+    document.getElementById('totalIVA').textContent = '$' + totalIVA.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+    document.getElementById('totalFacturas').textContent = facturas.length;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('facturasTable');
+    document.getElementById('totalDocs').textContent = facturas.length;
+
+    if (facturas.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">No se encontraron facturas</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = facturas.map(function(f) {
+      const tipoBadge = f.tipo_movimiento === 'ingreso' ? 'bg-success' : 'bg-danger';
+      const metodoBadge = f.metodo_pago === 'PUE' ? 'bg-info' : 'bg-warning text-dark';
+      const estatusBadge = f.estatus === 'pagada' ? 'bg-success' : 'bg-secondary';
+
+      return '<tr>' +
+        '<td><code class="small">' + f.uuid.substring(0, 8) + '...</code></td>' +
+        '<td><span class="badge ' + tipoBadge + '">' + f.tipo_movimiento + '</span></td>' +
+        '<td>' + f.rfc_emisor + '</td>' +
+        '<td>' + f.rfc_receptor + '</td>' +
+        '<td class="text-end">$' + (f.subtotal || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</td>' +
+        '<td class="text-end">$' + (f.iva_trasladado || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</td>' +
+        '<td class="text-end"><strong>$' + (f.total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</strong></td>' +
+        '<td><span class="badge ' + metodoBadge + '">' + f.metodo_pago + '</span></td>' +
+        '<td><span class="badge ' + estatusBadge + '">' + f.estatus + '</span></td>' +
+        '<td class="text-center">' +
+          '<button class="btn btn-sm btn-outline-danger" onclick="deleteFactura(\'' + f.id + '\')" title="Eliminar"><i class="bi bi-trash"></i></button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  document.getElementById('uploadContribuyente').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    const rfc = option.getAttribute('data-rfc') || '';
+    document.getElementById('uploadRFC').value = rfc;
+  });
+
+  document.getElementById('btnUpload').addEventListener('click', async function() {
+    const contribuyenteId = document.getElementById('uploadContribuyente').value;
+    const rfc = document.getElementById('uploadRFC').value;
+    const fileInput = document.getElementById('uploadXML');
+    const file = fileInput.files[0];
+
+    if (!contribuyenteId || !rfc || !file) {
+      alert('Todos los campos son obligatorios');
+      return;
+    }
+
+    const xml = await file.text();
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Procesando...';
+
+    try {
+      const res = await fetch('/api/facturas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          xml: xml,
+          contribuyente_id: contribuyenteId,
+          rfc_usuario: rfc,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+        document.getElementById('uploadForm').reset();
+        alert('Factura procesada exitosamente\nTipo: ' + data.tipo_movimiento + '\nTotal: $' + data.total);
+        loadFacturas();
+      } else {
+        alert(data.error || 'Error al procesar');
+      }
+    } catch (e) {
+      alert('Error de conexión: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-cpu me-1"></i>Procesar';
+    }
+  });
+
+  document.getElementById('btnBuscar').addEventListener('click', loadFacturas);
+
+  async function deleteFactura(id) {
+    if (!confirm('¿Estás seguro de eliminar esta factura?')) return;
+    try {
+      const res = await fetch('/api/facturas?id=' + id, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        loadFacturas();
+      }
+    } catch (e) {
+      alert('Error al eliminar');
+    }
+  }
+</script>
