@@ -86,9 +86,36 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
       </div>
     </div>
   </div>
+
+  <div class="row g-4 mt-2">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Obligaciones por Tipo</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="chartObligaciones" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Estatus de Obligaciones</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="chartEstatus" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
 </DashboardLayout>
 
+<script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script is:inline>
+  var chartObligaciones = null;
+  var chartEstatus = null;
+
   function loadDashboard() {
     fetch('/api/dashboard')
       .then(function(res) { return res.json(); })
@@ -117,11 +144,60 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           alertas += '<div class="alert alert-info py-2"><strong>' + data.efirmaProximas + ' e.firma(s)</strong> por renovar</div>';
         }
         if (!alertas) {
-          alertas = '<div class="alert alert-success py-2 mb-0"><strong>✅ Todo en orden</strong></div>';
+          alertas = '<div class="alert alert-success py-2 mb-0"><strong>Todo en orden</strong></div>';
         }
         document.getElementById('dashboardAlertas').innerHTML = alertas;
+
+        // Render charts
+        renderCharts(data);
       })
       .catch(function(err) { console.error('Error:', err); });
+  }
+
+  function renderCharts(data) {
+    // Obligaciones por tipo
+    var tipoData = data.obligacionesPorTipo || {};
+    var tipoLabels = Object.keys(tipoData);
+    var tipoValues = Object.values(tipoData);
+
+    if (chartObligaciones) chartObligaciones.destroy();
+    chartObligaciones = new Chart(document.getElementById('chartObligaciones'), {
+      type: 'bar',
+      data: {
+        labels: tipoLabels.length ? tipoLabels : ['Sin datos'],
+        datasets: [{
+          label: 'Obligaciones',
+          data: tipoValues.length ? tipoValues : [0],
+          backgroundColor: ['#0d6efd', '#ffc107', '#dc3545', '#198754', '#0dcaf0'],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+
+    // Estatus de obligaciones
+    var estatusData = data.obligacionesPorEstatus || {};
+    var estatusLabels = Object.keys(estatusData);
+    var estatusValues = Object.values(estatusData);
+
+    if (chartEstatus) chartEstatus.destroy();
+    chartEstatus = new Chart(document.getElementById('chartEstatus'), {
+      type: 'doughnut',
+      data: {
+        labels: estatusLabels.length ? estatusLabels : ['Sin datos'],
+        datasets: [{
+          data: estatusValues.length ? estatusValues : [0],
+          backgroundColor: ['#198754', '#ffc107', '#dc3545', '#6c757d'],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
   }
 
   loadDashboard();

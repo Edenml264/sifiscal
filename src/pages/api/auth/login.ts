@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { client } from '../../../lib/turso';
+import bcrypt from 'bcryptjs';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const { usuario, password } = await request.json();
@@ -26,8 +27,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const user = result.rows[0];
 
-    // Simple password check (in production use bcrypt)
-    if (user.password_hash !== password) {
+    // Verify password with bcrypt
+    const isValid = await bcrypt.compare(password, user.password_hash as string);
+    if (!isValid) {
       return new Response(JSON.stringify({ error: 'Credenciales incorrectas' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },

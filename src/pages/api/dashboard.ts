@@ -65,6 +65,28 @@ export const GET: APIRoute = async ({ locals }) => {
       args: [hoy, fechaLimite],
     });
 
+    // Obligaciones por tipo (para gráfica)
+    const porTipo = await client.execute({
+      sql: `SELECT tipo, COUNT(*) as total FROM obligaciones_fiscales GROUP BY tipo`,
+      args: [],
+    });
+
+    // Obligaciones por estatus (para gráfica)
+    const porEstatus = await client.execute({
+      sql: `SELECT estatus, COUNT(*) as total FROM obligaciones_fiscales GROUP BY estatus`,
+      args: [],
+    });
+
+    const obligacionesPorTipo: Record<string, number> = {};
+    porTipo.rows.forEach((row: any) => {
+      obligacionesPorTipo[row.tipo] = row.total;
+    });
+
+    const obligacionesPorEstatus: Record<string, number> = {};
+    porEstatus.rows.forEach((row: any) => {
+      obligacionesPorEstatus[row.estatus] = row.total;
+    });
+
     return new Response(JSON.stringify({
       totalContribuyentes: contribuyentes.rows[0]?.total || 0,
       obligacionesProximas: proximas.rows[0]?.total || 0,
@@ -73,6 +95,8 @@ export const GET: APIRoute = async ({ locals }) => {
       efirmaProximas: efirma.rows[0]?.total || 0,
       csdProximos: csd.rows[0]?.total || 0,
       proximasObligaciones: proximasDetalle.rows,
+      obligacionesPorTipo,
+      obligacionesPorEstatus,
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

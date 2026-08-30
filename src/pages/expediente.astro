@@ -225,8 +225,17 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
       return;
     }
 
-    if (archivo.size > 5 * 1024 * 1024) {
-      alert('El archivo no puede superar 5MB');
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    if (!allowedTypes.includes(archivo.type)) {
+      alert('Tipo de archivo no permitido. Use PDF, JPG o PNG.');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (archivo.size > maxSize) {
+      alert('El archivo no puede superar 5MB. Tamaño actual: ' + (archivo.size / 1024 / 1024).toFixed(2) + 'MB');
       return;
     }
 

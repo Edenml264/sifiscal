@@ -59,6 +59,15 @@ const REGIMENES = [
           </tbody>
         </table>
       </div>
+
+      <!-- Paginación -->
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <div class="text-muted small" id="paginationInfo">Mostrando 0 de 0 registros</div>
+        <nav>
+          <ul class="pagination mb-0" id="paginationControls">
+          </ul>
+        </nav>
+      </div>
     </div>
   </div>
 
@@ -148,27 +157,38 @@ const REGIMENES = [
 <script is:inline>
   var bsModal = null;
   var bsDetalle = null;
+  var currentPage = 1;
+  var totalPages = 1;
 
   function initModals() {
     bsModal = new bootstrap.Modal(document.getElementById('modalContribuyente'));
     bsDetalle = new bootstrap.Modal(document.getElementById('modalDetalle'));
   }
 
-  function loadContribuyentes() {
+  function loadContribuyentes(page) {
+    currentPage = page || 1;
     var search = document.getElementById('searchInput').value;
     var regimen = document.getElementById('filterRegimen').value;
     var params = new URLSearchParams();
     if (search) params.set('search', search);
     if (regimen) params.set('regimen', regimen);
+    params.set('page', currentPage);
+    params.set('limit', '10');
 
     fetch('/api/contribuyentes?' + params)
       .then(function(r) { return r.json(); })
-      .then(function(data) {
+      .then(function(result) {
+        var data = result.data || result;
+        var pagination = result.pagination;
         var tbody = document.getElementById('tablaContribuyentes');
+        
         if (!data.length) {
           tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay contribuyentes registrados</td></tr>';
+          document.getElementById('paginationInfo').textContent = 'Mostrando 0 de 0 registros';
+          document.getElementById('paginationControls').innerHTML = '';
           return;
         }
+
         tbody.innerHTML = data.map(function(c) {
           var badge = c.estatus === 'Activo' ? 'bg-success' : 'bg-danger';
           return '<tr>' +
@@ -182,8 +202,39 @@ const REGIMENES = [
               '<button class="btn btn-outline-danger btn-sm" onclick="deleteContribuyente(\'' + c.id + '\', \'' + c.nombre.replace(/'/g, "\\'") + '\')" title="Eliminar">🗑️</button>' +
             '</td></tr>';
         }).join('');
+
+        if (pagination) {
+          totalPages = pagination.totalPages;
+          var start = (pagination.page - 1) * pagination.limit + 1;
+          var end = Math.min(pagination.page * pagination.limit, pagination.total);
+          document.getElementById('paginationInfo').textContent = 
+            'Mostrando ' + start + '-' + end + ' de ' + pagination.total + ' registros';
+          renderPagination(pagination.page, pagination.totalPages);
+        }
       })
       .catch(function(e) { console.error('Error:', e); });
+  }
+
+  function renderPagination(current, total) {
+    var html = '';
+    html += '<li class="page-item ' + (current === 1 ? 'disabled' : '') + '">';
+    html += '<a class="page-link" href="#" onclick="event.preventDefault();loadContribuyentes(' + (current - 1) + ')">Anterior</a>';
+    html += '</li>';
+    
+    var startPage = Math.max(1, current - 2);
+    var endPage = Math.min(total, current + 2);
+    
+    for (var i = startPage; i <= endPage; i++) {
+      html += '<li class="page-item ' + (i === current ? 'active' : '') + '">';
+      html += '<a class="page-link" href="#" onclick="event.preventDefault();loadContribuyentes(' + i + ')">' + i + '</a>';
+      html += '</li>';
+    }
+    
+    html += '<li class="page-item ' + (current === total ? 'disabled' : '') + '">';
+    html += '<a class="page-link" href="#" onclick="event.preventDefault();loadContribuyentes(' + (current + 1) + ')">Siguiente</a>';
+    html += '</li>';
+    
+    document.getElementById('paginationControls').innerHTML = html;
   }
 
   function openModal() {

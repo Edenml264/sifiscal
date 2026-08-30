@@ -1,12 +1,13 @@
 import type { APIRoute } from 'astro';
 import { client } from '../../lib/turso';
 import { generateId, sanitizeString } from '../../lib/validations';
-import { createHash } from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const PERFILES_VALIDOS = ['Administrador', 'Contador', 'Auxiliar', 'Consulta'];
+const SALT_ROUNDS = 10;
 
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, SALT_ROUNDS);
 }
 
 export const GET: APIRoute = async ({ url, locals }) => {
@@ -75,7 +76,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const id = generateId();
-    const passwordHash = hashPassword(password);
+    const passwordHash = await hashPassword(password);
 
     const defaultPermisos = JSON.stringify({
       dashboard: 'R',
@@ -143,7 +144,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
       args = [
         sanitizeString(nombre),
         sanitizeString(usuario),
-        hashPassword(password),
+        await hashPassword(password),
         perfil,
         permisos || '{}',
         id,

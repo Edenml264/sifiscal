@@ -2,6 +2,8 @@ import type { APIRoute } from 'astro';
 import { client } from '../../lib/turso';
 import { validateRFC, validateCURP, validateEmail, sanitizeString, generateId } from '../../lib/validations';
 
+const PAGE_SIZE = 10;
+
 export const GET: APIRoute = async ({ url, locals }) => {
   const user = locals.user;
   if (!user) {
@@ -12,6 +14,9 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const id = url.searchParams.get('id');
     const search = url.searchParams.get('search') || '';
     const regimen = url.searchParams.get('regimen') || '';
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = parseInt(url.searchParams.get('limit') || String(PAGE_SIZE));
+    const offset = (page - 1) * limit;
 
     if (id) {
       const result = await client.execute({
@@ -24,22 +29,38 @@ export const GET: APIRoute = async ({ url, locals }) => {
       return new Response(JSON.stringify(result.rows[0]), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
-    let sql = 'SELECT * FROM contribuyentes WHERE 1=1';
+    let whereClause = 'WHERE 1=1';
     const args: any[] = [];
 
     if (search) {
-      sql += ' AND (nombre LIKE ? OR rfc LIKE ?)';
+      whereClause += ' AND (nombre LIKE ? OR rfc LIKE ?)';
       args.push(`%${search}%`, `%${search}%`);
     }
     if (regimen) {
-      sql += ' AND regimen_fiscal = ?';
+      whereClause += ' AND regimen_fiscal = ?';
       args.push(regimen);
     }
 
-    sql += ' ORDER BY nombre ASC';
+    const countResult = await client.execute({
+      sql: `SELECT COUNT(*) as total FROM contribuyentes ${whereClause}`,
+      args: args,
+    });
+    const total = countResult.rows[0].total as number;
 
-    const result = await client.execute({ sql, args });
-    return new Response(JSON.stringify(result.rows), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    const result = await client.execute({
+      sql: `SELECT * FROM contribuyentes ${whereClause} ORDER BY nombre ASC LIMIT ? OFFSET ?`,
+      args: [...args, limit, offset],
+    });
+
+    return new Response(JSON.stringify({
+      data: result.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('GET contribuyentes error:', error);
     return new Response(JSON.stringify({ error: 'Error del servidor' }), { status: 500, headers: { 'Content-Type': 'application/json' } });

@@ -1,6 +1,9 @@
 import { client } from '../lib/turso';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import bcrypt from 'bcryptjs';
+
+const SALT_ROUNDS = 10;
 
 async function seed() {
   console.log('🚀 Inicializando base de datos SIFiscal...');
@@ -16,8 +19,10 @@ async function seed() {
   }
   console.log('✅ Tablas creadas');
 
-  // Create default admin user
+  // Create default admin user with bcrypt hashed password
   const adminId = crypto.randomUUID();
+  const hashedPassword = await bcrypt.hash('admin', SALT_ROUNDS);
+  
   await client.execute({
     sql: `INSERT OR IGNORE INTO usuarios (id, nombre, usuario, password_hash, perfil, permisos)
           VALUES (?, ?, ?, ?, ?, ?)`,
@@ -25,20 +30,20 @@ async function seed() {
       adminId,
       'Administrador',
       'admin',
-      'admin', // In production, hash this with bcrypt
+      hashedPassword,
       'Administrador',
-      JSON.stringify([
-        'Dashboard:read:write',
-        'Contribuyentes:read:write',
-        'Obligaciones:read:write',
-        'Calendario:read:write',
-        'e.firma y CSD:read:write',
-        'Expediente:read:write',
-        'Notas:read:write',
-        'Usuarios:read:write',
-        'Respaldos:read:write',
-        'Reportes:read:write',
-      ]),
+      JSON.stringify({
+        dashboard: 'RW',
+        contribuyentes: 'RW',
+        obligaciones: 'RW',
+        calendario: 'RW',
+        efirma: 'RW',
+        expediente: 'RW',
+        notas: 'RW',
+        usuarios: 'RW',
+        respaldos: 'RW',
+        reportes: 'RW',
+      }),
     ],
   });
   console.log('✅ Usuario admin creado (admin/admin)');

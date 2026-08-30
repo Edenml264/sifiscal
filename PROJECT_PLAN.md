@@ -18,12 +18,21 @@ Stack: Astro JS + Turso + Bootstrap 5
 | 5 | e.firma y CSD | ✅ Completada | `api/efirma.ts`, `efirma.astro` |
 | 6 | Dashboard | ✅ Completada | `api/dashboard.ts`, `dashboard.astro` |
 | 7 | Sidebar y Navegación | ✅ Completada | `Sidebar.astro`, `DashboardLayout.astro`, `BaseLayout.astro` |
-| 8 | Expediente Digital | ⏳ Pendiente | `api/documentos.ts`, `expediente.astro` |
-| 9 | Notas y Seguimiento | ⏳ Pendiente | `api/notas.ts`, `notas.astro` |
-| 10 | Usuarios y Permisos | ⏳ Pendiente | `api/usuarios.ts`, `usuarios.astro` |
-| 11 | Respaldos | ⏳ Pendiente | `api/respaldos.ts`, `respaldos.astro` |
-| 12 | Reportes | ⏳ Pendiente | `api/reportes.ts`, `reportes.astro` |
-| 13 | Procesador XML (CFDI 4.0) | ⏳ Pendiente | `api/upload-xml.ts`, `XmlUpload.astro` |
+| 8 | Expediente Digital | ✅ Completada | `api/documentos.ts`, `expediente.astro` |
+| 9 | Notas y Seguimiento | ✅ Completada | `api/notas.ts`, `notas.astro` |
+| 10 | Usuarios y Permisos | ✅ Completada | `api/usuarios.ts`, `usuarios.astro` |
+| 11 | Respaldos | ✅ Completada | `api/respaldos.ts`, `respaldos.astro` |
+| 12 | Reportes | ✅ Completada | `api/reportes.ts`, `reportes.astro` |
+| 13 | Procesador XML (CFDI 4.0) | ✅ Completada | `api/facturas.ts`, `facturas.astro` |
+
+### Pendientes Técnicos (Producción)
+
+| # | Pendiente | Prioridad | Descripción |
+|---|-----------|-----------|-------------|
+| 1 | Bcrypt para contraseñas | Alta | Actualmente usa SHA-256 |
+| 2 | Paginación en tablas | Media | Sin paginación actualmente |
+| 3 | Tests unitarios | Media | No hay tests |
+| 4 | Optimización de documentos | Baja | Almacena en base64 (pesado) |
 
 ---
 
@@ -84,7 +93,7 @@ Stack: Astro JS + Turso + Bootstrap 5
 - Alertas de renovación
 - Sin almacenar contraseñas sensibles
 
-### Módulo 6: Expediente Digital ⏳
+### Módulo 6: Expediente Digital ✅
 - Constancia de Situación Fiscal
 - Opinión de Cumplimiento
 - Acuse de inscripción
@@ -92,27 +101,27 @@ Stack: Astro JS + Turso + Bootstrap 5
 - Poderes e Identificaciones
 - Formatos: PDF, JPG, PNG
 
-### Módulo 7: Notas y Seguimiento ⏳
+### Módulo 7: Notas y Seguimiento ✅
 - Notas por contribuyente
 - Pendientes
 - Observaciones
 - Historial de actividades
 
-### Módulo 8: Usuarios y Permisos ⏳
+### Módulo 8: Usuarios y Permisos ✅
 - Perfiles: Administrador, Contador, Auxiliar, Consulta
 - Permisos por módulo (lectura/escritura)
 
-### Módulo 9: Respaldos ⏳
+### Módulo 9: Respaldos ✅
 - Respaldo manual y automático
 - Exportación e importación (JSON)
 
-### Módulo 10: Reportes ⏳
+### Módulo 10: Reportes ✅
 - Obligaciones pendientes/presentadas
 - Próximos vencimientos
 - e.firmas y CSD por vencer
 - Generación PDF
 
-### Módulo 11: Procesador XML (CFDI 4.0) ⏳
+### Módulo 11: Procesador XML (CFDI 4.0) ✅
 - Parser de XML CFDI 4.0
 - Clasificación automática (Ingreso vs Egreso)
 - Cálculo de ISR e IVA
