@@ -108,7 +108,7 @@ async function obtenerFacturasPeriodo(contribuyenteId: string, mes: number, anio
     sql: `SELECT subtotal, iva_trasladado, iva_retenido, isr_retenido, total, fecha_pago FROM facturas
           WHERE contribuyente_id = ? AND tipo_movimiento = 'ingreso'
           AND tipo_cfdi NOT IN ('Nomina', 'ComplementoPago')
-          AND uso_cfdi NOT IN ('D01', 'D02', 'D03', 'D04', 'D05', 'D06', 'D07', '010')
+          AND uso_cfdi NOT IN ('D01', 'D02', 'D03', 'D04', 'D05', 'D06', 'D07', '010', 'CN01', 'CN02')
           AND fecha_pago IS NOT NULL
           AND strftime('%Y', fecha_pago) = ? AND strftime('%m', fecha_pago) = ?`,
     args: [contribuyenteId, anio.toString(), mesStr],
@@ -118,7 +118,7 @@ async function obtenerFacturasPeriodo(contribuyenteId: string, mes: number, anio
     sql: `SELECT subtotal, iva_trasladado, iva_retenido, isr_retenido, total, fecha_pago FROM facturas
           WHERE contribuyente_id = ? AND tipo_movimiento = 'egreso'
           AND tipo_cfdi NOT IN ('Nomina', 'ComplementoPago')
-          AND uso_cfdi NOT IN ('D01', 'D02', 'D03', 'D04', 'D05', 'D06', 'D07', '010')
+          AND uso_cfdi NOT IN ('D01', 'D02', 'D03', 'D04', 'D05', 'D06', 'D07', '010', 'CN01', 'CN02')
           AND fecha_pago IS NOT NULL
           AND strftime('%Y', fecha_pago) = ? AND strftime('%m', fecha_pago) = ?`,
     args: [contribuyenteId, anio.toString(), mesStr],
@@ -133,6 +133,7 @@ async function obtenerNominaPeriodo(contribuyenteId: string, mes: number, anio: 
   const nomina = await client.execute({
     sql: `SELECT subtotal, iva_trasladado, iva_retenido, isr_retenido, total, fecha_pago FROM facturas
           WHERE contribuyente_id = ? AND tipo_cfdi = 'Nomina'
+          AND uso_cfdi IN ('CN01', 'CN02')
           AND fecha_pago IS NOT NULL
           AND strftime('%Y', fecha_pago) = ? AND strftime('%m', fecha_pago) = ?`,
     args: [contribuyenteId, anio.toString(), mesStr],
@@ -249,6 +250,7 @@ export async function calcularDeclaracionAnualSueldos(
     sql: `SELECT subtotal FROM facturas
           WHERE contribuyente_id = ?
           AND uso_cfdi IN ('D01', 'D02', 'D03', 'D04', 'D05', 'D06', 'D07', '010')
+          AND tipo_cfdi NOT IN ('Nomina')
           AND fecha_pago IS NOT NULL
           AND strftime('%Y', fecha_pago) = ?`,
     args: [contribuyenteId, anio.toString()],

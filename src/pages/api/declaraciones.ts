@@ -82,6 +82,7 @@ export const GET: APIRoute = async ({ url }) => {
         const nomina = await client.execute({
           sql: `SELECT subtotal, isr_retenido FROM facturas
                 WHERE contribuyente_id = ? AND tipo_cfdi = 'Nomina'
+                AND uso_cfdi IN ('CN01', 'CN02')
                 AND fecha_pago IS NOT NULL
                 AND strftime('%Y', fecha_pago) = ? AND strftime('%m', fecha_pago) = ?`,
           args: [cId, anioNum.toString(), mesStr],
@@ -90,6 +91,7 @@ export const GET: APIRoute = async ({ url }) => {
           sql: `SELECT subtotal FROM facturas
                 WHERE contribuyente_id = ?
                 AND uso_cfdi IN ('D01', 'D02', 'D03', 'D04', 'D05', 'D06', 'D07', '010')
+                AND tipo_cfdi NOT IN ('Nomina')
                 AND fecha_pago IS NOT NULL
                 AND strftime('%Y', fecha_pago) = ? AND strftime('%m', fecha_pago) = ?`,
           args: [cId, anioNum.toString(), mesStr],
