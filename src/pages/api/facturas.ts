@@ -155,7 +155,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       sql: `INSERT INTO facturas (id, uuid, rfc_emisor, rfc_receptor, contribuyente_id, tipo_movimiento, metodo_pago, forma_pago, subtotal, iva_trasladado, iva_retenido, isr_retenido, total, fecha_emision, fecha_pago, fecha_timbrado, uso_cfdi, serie, folio, estatus, tipo_cfdi,
             nomina_sueldo, nomina_aguinaldo, nomina_prima_vacacional, nomina_prima_dominical, nomina_horas_extra, nomina_ptu, nomina_otras_percepciones,
             nomina_imss, nomina_isr, nomina_infonavit, nomina_sar, nomina_pension_alimenticia, nomina_otras_deducciones, nomina_subsidio_empleo)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args,
     });
 
