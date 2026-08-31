@@ -192,3 +192,47 @@ export const DELETE: APIRoute = async ({ url, locals }) => {
     return new Response(JSON.stringify({ error: 'Error del servidor' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 };
+
+export const PUT: APIRoute = async ({ request, locals }) => {
+  const user = locals.user;
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  try {
+    const data = await request.json();
+    const { id, tipo_movimiento, tipo_cfdi, uso_cfdi, estatus, metodo_pago, rfc_emisor, rfc_receptor } = data;
+
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'ID requerido' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    const fields: string[] = [];
+    const args: any[] = [];
+
+    if (tipo_movimiento !== undefined) { fields.push('tipo_movimiento = ?'); args.push(tipo_movimiento); }
+    if (tipo_cfdi !== undefined) { fields.push('tipo_cfdi = ?'); args.push(tipo_cfdi); }
+    if (uso_cfdi !== undefined) { fields.push('uso_cfdi = ?'); args.push(uso_cfdi); }
+    if (estatus !== undefined) { fields.push('estatus = ?'); args.push(estatus); }
+    if (metodo_pago !== undefined) { fields.push('metodo_pago = ?'); args.push(metodo_pago); }
+    if (rfc_emisor !== undefined) { fields.push('rfc_emisor = ?'); args.push(rfc_emisor); }
+    if (rfc_receptor !== undefined) { fields.push('rfc_receptor = ?'); args.push(rfc_receptor); }
+
+    if (fields.length === 0) {
+      return new Response(JSON.stringify({ error: 'Sin cambios' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    fields.push("updated_at = datetime('now')");
+    args.push(id);
+
+    await client.execute({
+      sql: `UPDATE facturas SET ${fields.join(', ')} WHERE id = ?`,
+      args,
+    });
+
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  } catch (error: any) {
+    console.error('PUT facturas error:', error);
+    return new Response(JSON.stringify({ error: error.message || 'Error del servidor' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+  }
+};

@@ -571,6 +571,116 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
+  <!-- Modal Ver Factura -->
+  <div class="modal fade" id="modalVerFactura" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Comprobante CFDI</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="verFacturaContent">
+          <p class="text-muted">Cargando...</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar Factura -->
+  <div class="modal fade" id="modalEditarFactura" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar Factura</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="efId" />
+          <div class="mb-3">
+            <label class="form-label">UUID</label>
+            <input type="text" id="efUuid" class="form-control" readonly />
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Clasificación *</label>
+              <select id="efTipoCfdi" class="form-select">
+                <option value="Ingreso">RESICO (Ingreso)</option>
+                <option value="Nomina">Nómina</option>
+                <option value="Deduccion">Deducción</option>
+                <option value="ComplementoPago">Complemento de Pago (CxP)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Movimiento *</label>
+              <select id="efTipoMovimiento" class="form-select">
+                <option value="ingreso">Ingreso</option>
+                <option value="egreso">Egreso</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Uso CFDI</label>
+              <select id="efUsoCfdi" class="form-select">
+                <option value="G01">G01 - Adquisición de mercancías</option>
+                <option value="G02">G02 - Gastos en general</option>
+                <option value="G03">G03 - Adquisición de materiales de construcción</option>
+                <option value="I01">I01 - Construcciones</option>
+                <option value="I02">I02 - Mobilario y equipo de oficina</option>
+                <option value="I03">I03 - Equipo de cómputo</option>
+                <option value="I04">I04 - Dados, troqueles, moldes y mangueras</option>
+                <option value="I05">I05 - Comunicaciones telefónicas</option>
+                <option value="I06">I06 - Comunicaciones satelitales</option>
+                <option value="I07">I07 - Otra maquinaria y equipo</option>
+                <option value="D01">D01 - Crédito al consumo</option>
+                <option value="D02">D02 - Crédito hipotecario</option>
+                <option value="D03">D03 - Arrendamiento financiero</option>
+                <option value="D04">D04 - Arrendamiento operativo</option>
+                <option value="D05">D05 - Seguros</option>
+                <option value="D06">D06 - Garantías para revervar mercancías</option>
+                <option value="D07">D07 - Crédito a la palabra</option>
+                <option value="CN01">CN01 - Sueldos, salarios y asimilados</option>
+                <option value="CN02">CN02 - Suplemento a pensionados</option>
+                <option value="S01">S01 - Sin efectos fiscales</option>
+                <option value="CP01">CP01 - Pagos por servicios</option>
+                <option value="P01">P01 - Pagos</option>
+                <option value="010">010 - Pagos</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Método de Pago</label>
+              <select id="efMetodoPago" class="form-select">
+                <option value="PUE">PUE - Pago en una sola exhibición</option>
+                <option value="PPD">PPD - Pago en parcialidades</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Estatus</label>
+              <select id="efEstatus" class="form-select">
+                <option value="pendiente">Pendiente</option>
+                <option value="pagada">Pagada</option>
+                <option value="cancelada">Cancelada</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Emisor (RFC)</label>
+              <input type="text" id="efRfcEmisor" class="form-control" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Receptor (RFC)</label>
+              <input type="text" id="efRfcReceptor" class="form-control" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="saveEditFactura()">Guardar Cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Calcular Declaración -->
   <div class="modal fade" id="modalCalcular" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -694,6 +804,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     bsModals.documento = new bootstrap.Modal(document.getElementById('modalDocumento'));
     bsModals.nota = new bootstrap.Modal(document.getElementById('modalNota'));
     bsModals.factura = new bootstrap.Modal(document.getElementById('modalFactura'));
+    bsModals.verFactura = new bootstrap.Modal(document.getElementById('modalVerFactura'));
+    bsModals.editarFactura = new bootstrap.Modal(document.getElementById('modalEditarFactura'));
     bsModals.calcular = new bootstrap.Modal(document.getElementById('modalCalcular'));
     bsModals.detalleDecl = new bootstrap.Modal(document.getElementById('modalDetalleDeclaracion'));
     bsModals.presentar = new bootstrap.Modal(document.getElementById('modalPresentar'));
@@ -1265,7 +1377,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         tbody.innerHTML = data.map(function(f) {
           var tipoBadge = f.tipo_movimiento === 'ingreso' ? 'bg-success' : 'bg-danger';
           var metodoBadge = f.metodo_pago === 'PUE' ? 'bg-info' : 'bg-warning text-dark';
-          var estatusBadge = f.estatus === 'pagada' ? 'bg-success' : 'bg-secondary';
+          var estatusBadge = f.estatus === 'pagada' ? 'bg-success' : f.estatus === 'cancelada' ? 'bg-danger' : 'bg-secondary';
           var cfdiTipo = f.tipo_cfdi || 'Ingreso';
           var uso = f.uso_cfdi || '';
           var esDeduccion = uso.startsWith('D') || uso === '010';
@@ -1297,11 +1409,113 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             '<td><strong>$' + (f.total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</strong></td>' +
             '<td><span class="badge ' + metodoBadge + '">' + f.metodo_pago + '</span></td>' +
             '<td><span class="badge ' + estatusBadge + '">' + f.estatus + '</span></td>' +
-            '<td class="text-center">' +
+            '<td class="text-center text-nowrap">' +
+              '<button class="btn btn-outline-info btn-sm me-1" onclick="viewFactura(\'' + f.id + '\')" title="Ver XML">👁️</button>' +
+              '<button class="btn btn-outline-warning btn-sm me-1" onclick="editFactura(\'' + f.id + '\')" title="Editar">✏️</button>' +
               '<button class="btn btn-outline-danger btn-sm" onclick="deleteFactura(\'' + f.id + '\')" title="Eliminar">🗑️</button>' +
             '</td></tr>';
         }).join('');
       });
+  }
+
+  function viewFactura(id) {
+    fetch('/api/facturas?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(f) {
+        var usoCfdiMap = {
+          'G01': 'Adquisición de mercancías', 'G02': 'Gastos en general',
+          'G03': 'Adquisición de materiales de construcción',
+          'I01': 'Construcciones', 'I02': 'Mobilario y equipo de oficina',
+          'I03': 'Equipo de cómputo', 'I04': 'Dados, troqueles, moldes y mangueras',
+          'I05': 'Comunicaciones telefónicas', 'I06': 'Comunicaciones satelitales',
+          'I07': 'Otra maquinaria y equipo', 'D01': 'Crédito al consumo',
+          'D02': 'Crédito hipotecario', 'D03': 'Arrendamiento financiero',
+          'D04': 'Arrendamiento operativo', 'D05': 'Seguros',
+          'D06': 'Garantías para revervar mercancías', 'D07': 'Crédito a la palabra',
+          'CN01': 'Sueldos, salarios y asimilados', 'CN02': 'Suplemento a pensionados',
+          'S01': 'Sin efectos fiscales', 'CP01': 'Pagos por servicios',
+          'P01': 'Pagos', '010': 'Pagos',
+        };
+        var uso = f.uso_cfdi || '';
+        var usoDesc = usoCfdiMap[uso] || uso || '-';
+        var tipoBadge = f.tipo_movimiento === 'ingreso' ? 'bg-success' : 'bg-danger';
+        var cfdiTipo = f.tipo_cfdi || 'Ingreso';
+        var cfdiBadge = cfdiTipo === 'Nomina' ? 'bg-dark' : cfdiTipo === 'Deduccion' ? 'bg-warning text-dark' : cfdiTipo === 'ComplementoPago' ? 'bg-info' : 'bg-primary';
+        var metodoBadge = f.metodo_pago === 'PUE' ? 'bg-info' : 'bg-warning text-dark';
+
+        var html = '<div class="row g-3">' +
+          '<div class="col-12"><strong>UUID:</strong><br/><code class="small">' + f.uuid + '</code></div>' +
+          '<div class="col-md-4"><strong>Clasificación:</strong><br/><span class="badge ' + cfdiBadge + '">' + cfdiTipo + '</span></div>' +
+          '<div class="col-md-4"><strong>Movimiento:</strong><br/><span class="badge ' + tipoBadge + '">' + f.tipo_movimiento + '</span></div>' +
+          '<div class="col-md-4"><strong>Estatus:</strong><br/>' + f.estatus + '</div>' +
+          '<div class="col-md-6"><strong>Emisor (RFC):</strong><br/><code>' + f.rfc_emisor + '</code></div>' +
+          '<div class="col-md-6"><strong>Receptor (RFC):</strong><br/><code>' + f.rfc_receptor + '</code></div>' +
+          '<div class="col-md-3"><strong>Subtotal:</strong><br/>$' + (f.subtotal || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+          '<div class="col-md-3"><strong>IVA Trasladado:</strong><br/>$' + (f.iva_trasladado || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+          '<div class="col-md-3"><strong>IVA Retenido:</strong><br/>$' + (f.iva_retenido || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+          '<div class="col-md-3"><strong>Total:</strong><br/><span class="fs-5 fw-bold">$' + (f.total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</span></div>' +
+          '<div class="col-md-4"><strong>Uso CFDI:</strong><br/><code>' + uso + '</code> - ' + usoDesc + '</div>' +
+          '<div class="col-md-4"><strong>Método Pago:</strong><br/><span class="badge ' + metodoBadge + '">' + (f.metodo_pago || '-') + '</span></div>' +
+          '<div class="col-md-4"><strong>Forma Pago:</strong><br/>' + (f.forma_pago || '-') + '</div>' +
+          '<div class="col-md-4"><strong>Fecha Emisión:</strong><br/>' + (f.fecha_emision || '-') + '</div>' +
+          '<div class="col-md-4"><strong>Fecha Pago:</strong><br/>' + (f.fecha_pago || '-') + '</div>' +
+          '<div class="col-md-4"><strong>Fecha Timbrado:</strong><br/>' + (f.fecha_timbrado || '-') + '</div>' +
+          '<div class="col-md-4"><strong>Serie / Folio:</strong><br/>' + (f.serie || '-') + ' ' + (f.folio || '-') + '</div>';
+        if (f.tipo_cfdi === 'Nomina') {
+          html += '<div class="col-12"><hr/><strong class="text-dark">Desglose Nómina</strong></div>' +
+            '<div class="col-md-4"><strong>Sueldo:</strong><br/>$' + (f.nomina_sueldo || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-4"><strong>Aguinaldo:</strong><br/>$' + (f.nomina_aguinaldo || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-4"><strong>Prima Vacacional:</strong><br/>$' + (f.nomina_prima_vacacional || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-4"><strong>IMSS:</strong><br/>$' + (f.nomina_imss || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-4"><strong>ISR:</strong><br/>$' + (f.nomina_isr || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-4"><strong>Subsidio Empleo:</strong><br/>$' + (f.nomina_subsidio_empleo || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>';
+        }
+        html += '</div>';
+        document.getElementById('verFacturaContent').innerHTML = html;
+        bsModals.verFactura.show();
+      });
+  }
+
+  function editFactura(id) {
+    fetch('/api/facturas?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(f) {
+        document.getElementById('efId').value = f.id;
+        document.getElementById('efUuid').value = f.uuid;
+        document.getElementById('efTipoCfdi').value = f.tipo_cfdi || 'Ingreso';
+        document.getElementById('efTipoMovimiento').value = f.tipo_movimiento || 'ingreso';
+        document.getElementById('efUsoCfdi').value = f.uso_cfdi || 'G01';
+        document.getElementById('efMetodoPago').value = f.metodo_pago || 'PUE';
+        document.getElementById('efEstatus').value = f.estatus || 'pendiente';
+        document.getElementById('efRfcEmisor').value = f.rfc_emisor || '';
+        document.getElementById('efRfcReceptor').value = f.rfc_receptor || '';
+        bsModals.editarFactura.show();
+      });
+  }
+
+  function saveEditFactura() {
+    var id = document.getElementById('efId').value;
+    var data = {
+      id: id,
+      tipo_cfdi: document.getElementById('efTipoCfdi').value,
+      tipo_movimiento: document.getElementById('efTipoMovimiento').value,
+      uso_cfdi: document.getElementById('efUsoCfdi').value,
+      metodo_pago: document.getElementById('efMetodoPago').value,
+      estatus: document.getElementById('efEstatus').value,
+      rfc_emisor: document.getElementById('efRfcEmisor').value,
+      rfc_receptor: document.getElementById('efRfcReceptor').value,
+    };
+    fetch('/api/facturas', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.error) { alert(res.error); return; }
+      bsModals.editarFactura.hide();
+      loadFacturas();
+    });
   }
 
   function openModalFactura() {
