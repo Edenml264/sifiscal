@@ -198,10 +198,44 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="tab-pane fade" id="tabDeclaraciones" role="tabpanel">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h6 class="mb-0">Declaraciones Mensuales y Anuales</h6>
-            <button class="btn btn-primary btn-sm" onclick="openModalCalcular()">
-              <i class="bi bi-plus me-1"></i>Nueva Declaración
-            </button>
+            <div>
+              <select class="form-select form-select-sm d-inline-block w-auto me-2" id="declCalAnio" onchange="loadCalendario()">
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="openModalCalcular()">
+                <i class="bi bi-plus me-1"></i>Nueva Declaración
+              </button>
+            </div>
           </div>
+
+          <!-- Tabla Calendario Resumen -->
+          <div class="table-responsive mb-4" id="calendarioContainer">
+            <table class="table table-bordered table-sm text-center" id="tablaCalendario">
+              <thead class="table-dark">
+                <tr>
+                  <th class="text-start" style="min-width:140px">DESCRIPCIÓN</th>
+                  <th style="min-width:75px">ENE</th>
+                  <th style="min-width:75px">FEB</th>
+                  <th style="min-width:75px">MAR</th>
+                  <th style="min-width:75px">ABR</th>
+                  <th style="min-width:75px">MAY</th>
+                  <th style="min-width:75px">JUN</th>
+                  <th style="min-width:75px">JUL</th>
+                  <th style="min-width:75px">AGO</th>
+                  <th style="min-width:75px">SEP</th>
+                  <th style="min-width:75px">OCT</th>
+                  <th style="min-width:75px">NOV</th>
+                  <th style="min-width:75px">DIC</th>
+                  <th class="table-warning" style="min-width:85px">ANUAL</th>
+                </tr>
+              </thead>
+              <tbody id="calendarioBody">
+                <tr><td colspan="14" class="text-muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Lista detallada -->
+          <h6 class="border-bottom pb-2 mb-3">Historial de Declaraciones</h6>
           <div class="row g-3 mb-3">
             <div class="col-md-3">
               <select class="form-select form-select-sm" id="declAnio" onchange="loadDeclaraciones()">
@@ -1161,6 +1195,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function populateYears() {
     var sel = document.getElementById('dcAnio');
     var selFilter = document.getElementById('declAnio');
+    var selCal = document.getElementById('declCalAnio');
     var currentYear = new Date().getFullYear();
     var html = '';
     for (var y = currentYear; y >= currentYear - 5; y--) {
@@ -1168,6 +1203,70 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
     sel.innerHTML = html;
     selFilter.innerHTML = '<option value="">Todos los años</option>' + html;
+    selCal.innerHTML = html;
+    selCal.value = currentYear;
+  }
+
+  function loadCalendario() {
+    var anio = document.getElementById('declCalAnio').value;
+    if (!anio) return;
+    fetch('/api/declaraciones?action=calendario&contribuyente_id=' + contribuyenteId + '&anio=' + anio)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+        var fmt = function(v) { return (v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }); };
+
+        var rows = [
+          { label: 'ISR a Pagar', key: 'isr_por_pagar', color: 'text-danger' },
+          { label: 'IVA a Pagar', key: 'iva_pagar', color: 'text-primary' },
+          { label: 'ISR Retenido', key: 'isr_retenido', color: 'text-muted' },
+          { label: 'Total de Pago', key: 'total_pagar', color: 'fw-bold', computed: function(m) { return ((m.isr_por_pagar||0) + (m.iva_pagar||0)); } },
+        ];
+
+        var html = '';
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          html += '<tr>';
+          html += '<td class="text-start fw-bold">' + row.label + '</td>';
+          var anualSum = 0;
+          for (var m = 0; m < 12; m++) {
+            var mesData = data.meses[m];
+            var decl = mesData.declaracion;
+            var valor = row.computed ? row.computed(decl || {}) : (decl ? (decl[row.key] || 0) : 0);
+            anualSum += valor;
+            var bgClass = '';
+            var cursor = 'cursor-pointer';
+            if (decl) {
+              bgClass = decl.estatus === 'Presentada' ? 'table-success' : decl.estatus === 'Cancelada' ? 'table-danger' : 'table-warning';
+            } else {
+              bgClass = '';
+              valor = '-';
+            }
+            var valorFmt = valor === '-' ? '-' : '$' + fmt(valor);
+            html += '<td class="' + bgClass + ' ' + row.color + ' text-end ' + cursor + '" ';
+            html += 'style="font-size:0.82rem" ';
+            if (decl) {
+              html += 'onclick="verDetalleDeclaracion(\'' + decl.id + '\')" title="' + meses[m] + ' - Ver detalle"';
+            } else {
+              html += 'onclick="crearDesdeCalendario(' + mesData.mes + ')" title="' + meses[m] + ' - Click para crear"';
+            }
+            html += '>' + valorFmt + '</td>';
+          }
+          var anualFmt = '$' + fmt(anualSum);
+          html += '<td class="table-warning ' + row.color + ' text-end fw-bold" style="font-size:0.82rem">' + anualFmt + '</td>';
+          html += '</tr>';
+        }
+
+        document.getElementById('calendarioBody').innerHTML = html;
+      });
+  }
+
+  function crearDesdeCalendario(mes) {
+    document.getElementById('dcTipo').selectedIndex = 0;
+    document.getElementById('dcMes').value = mes;
+    document.getElementById('dcAnio').value = document.getElementById('declCalAnio').value;
+    toggleMesAnual();
+    bsModals.calcular.show();
   }
 
   function toggleMesAnual() {
@@ -1299,6 +1398,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (res.error) { alert(res.error); return; }
       bsModals.calcular.hide();
       loadDeclaraciones();
+      loadCalendario();
     });
   }
 
@@ -1408,13 +1508,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     .then(function() {
       bsModals.presentar.hide();
       loadDeclaraciones();
+      loadCalendario();
     });
   }
 
   function deleteDeclaracion(id) {
     if (!confirm('¿Eliminar esta declaración?')) return;
     fetch('/api/declaraciones?id=' + id, { method: 'DELETE' })
-      .then(function(r) { if (r.ok) loadDeclaraciones(); });
+      .then(function(r) { if (r.ok) { loadDeclaraciones(); loadCalendario(); } });
   }
 
   // ==================== INICIALIZACIÓN ====================
@@ -1427,5 +1528,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     loadNotas();
     loadFacturas();
     loadDeclaraciones();
+    loadCalendario();
   });
 </script>

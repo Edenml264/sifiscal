@@ -38,6 +38,65 @@ export const GET: APIRoute = async ({ url }) => {
     }
   }
 
+  if (action === 'calendario') {
+    const cId = contribuyenteId;
+    const anioNum = parseInt(anio || new Date().getFullYear().toString());
+
+    if (!cId) {
+      return new Response(JSON.stringify({ error: 'contribuyente_id requerido' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    const result = await client.execute({
+      sql: `SELECT * FROM declaraciones
+            WHERE contribuyente_id = ?
+            AND periodo LIKE ?
+            ORDER BY periodo ASC`,
+      args: [cId, anioNum + '%'],
+    });
+
+    const meses: Record<string, any> = {};
+    for (let m = 1; m <= 12; m++) {
+      const key = anioNum + '-' + m.toString().padStart(2, '0');
+      meses[key] = { periodo: key, mes: m, declaracion: null };
+    }
+
+    let totalISR = 0, totalIVA = 0, totalRetenido = 0, totalPagar = 0;
+    let totalDeducciones = 0;
+
+    for (const row of result.rows) {
+      const p = row.periodo as string;
+      if (meses[p]) {
+        meses[p].declaracion = {
+          id: row.id,
+          tipo: row.tipo,
+          estatus: row.estatus,
+          isr_por_pagar: row.isr_por_pagar || 0,
+          iva_pagar: row.iva_pagar || 0,
+          isr_retenido: row.isr_retenido || 0,
+          base_gravable_isr: row.base_gravable_isr || 0,
+          total_ingresos: row.total_ingresos || 0,
+        };
+        totalISR += (row.isr_por_pagar as number) || 0;
+        totalIVA += (row.iva_pagar as number) || 0;
+        totalRetenido += (row.isr_retenido as number) || 0;
+      }
+    }
+
+    const mesesArray = Object.values(meses);
+    const totalPagarCalc = totalISR + totalIVA;
+
+    return new Response(JSON.stringify({
+      anio: anioNum,
+      meses: mesesArray,
+      anual: {
+        isr_por_pagar: totalISR,
+        iva_pagar: totalIVA,
+        isr_retenido: totalRetenido,
+        total_pagar: totalPagarCalc,
+      }
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
   if (id) {
     const result = await client.execute({
       sql: 'SELECT * FROM declaraciones WHERE id = ?',
