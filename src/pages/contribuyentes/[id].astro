@@ -1232,14 +1232,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         ];
         if (isSueldos) {
           rows.push({ label: 'Deducciones', key: 'base_gravable_isr', color: 'text-info', computed: function(m) {
-            return m ? ((m.total_ingresos||0) - (m.base_gravable_isr||0)) : 0;
+            if (!m) return 0;
+            return ((m.total_ingresos||0) - (m.base_gravable_isr||0));
           }});
         }
         rows.push(
           { label: 'ISR a Pagar', key: 'isr_por_pagar', color: 'text-danger' },
           { label: 'IVA a Pagar', key: 'iva_pagar', color: 'text-primary' },
           { label: 'ISR Retenido', key: 'isr_retenido', color: 'text-muted' },
-          { label: 'Total de Pago', key: 'total_pagar', color: 'fw-bold', computed: function(m) { return ((m.isr_por_pagar||0) + (m.iva_pagar||0)); } },
+          { label: 'Total de Pago', key: 'total_pagar', color: 'fw-bold', computed: function(m) {
+            if (!m) return 0;
+            return ((m.isr_por_pagar||0) + (m.iva_pagar||0));
+          } },
         );
 
         var html = '';
