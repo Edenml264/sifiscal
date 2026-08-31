@@ -202,9 +202,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <select class="form-select form-select-sm d-inline-block w-auto me-2" id="declCalAnio" onchange="loadCalendario()">
               </select>
               <div class="btn-group btn-group-sm me-2" role="group">
-                <input type="radio" class="btn-check" name="calFiltro" id="calFiltroTodos" value="" checked onchange="loadCalendario()">
-                <label class="btn btn-outline-secondary" for="calFiltroTodos">Todos</label>
-                <input type="radio" class="btn-check" name="calFiltro" id="calFiltroRESICO" value="RESICO" onchange="loadCalendario()">
+                <input type="radio" class="btn-check" name="calFiltro" id="calFiltroRESICO" value="RESICO" checked onchange="loadCalendario()">
                 <label class="btn btn-outline-primary" for="calFiltroRESICO">RESICO</label>
                 <input type="radio" class="btn-check" name="calFiltro" id="calFiltroSueldos" value="Sueldos" onchange="loadCalendario()">
                 <label class="btn btn-outline-info" for="calFiltroSueldos">Sueldos y Salarios</label>
