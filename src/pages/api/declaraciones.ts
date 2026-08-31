@@ -41,18 +41,25 @@ export const GET: APIRoute = async ({ url }) => {
   if (action === 'calendario') {
     const cId = contribuyenteId;
     const anioNum = parseInt(anio || new Date().getFullYear().toString());
+    const tipoFiltro = url.searchParams.get('tipo_filtro') || '';
 
     if (!cId) {
       return new Response(JSON.stringify({ error: 'contribuyente_id requerido' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const result = await client.execute({
-      sql: `SELECT * FROM declaraciones
-            WHERE contribuyente_id = ?
-            AND periodo LIKE ?
-            ORDER BY periodo ASC`,
-      args: [cId, anioNum + '%'],
-    });
+    let sql = `SELECT * FROM declaraciones
+          WHERE contribuyente_id = ?
+          AND periodo LIKE ?`;
+    const args: any[] = [cId, anioNum + '%'];
+
+    if (tipoFiltro === 'RESICO') {
+      sql += ` AND tipo IN ('Mensual', 'Anual')`;
+    } else if (tipoFiltro === 'Sueldos') {
+      sql += ` AND tipo = 'Anual Sueldos'`;
+    }
+    sql += ` ORDER BY periodo ASC`;
+
+    const result = await client.execute({ sql, args });
 
     const meses: Record<string, any> = {};
     for (let m = 1; m <= 12; m++) {
@@ -60,8 +67,8 @@ export const GET: APIRoute = async ({ url }) => {
       meses[key] = { periodo: key, mes: m, declaracion: null };
     }
 
-    let totalISR = 0, totalIVA = 0, totalRetenido = 0, totalPagar = 0;
-    let totalDeducciones = 0;
+    let totalIngresos = 0, totalEgresos = 0;
+    let totalISR = 0, totalIVA = 0, totalRetenido = 0;
 
     for (const row of result.rows) {
       const p = row.periodo as string;
@@ -70,12 +77,15 @@ export const GET: APIRoute = async ({ url }) => {
           id: row.id,
           tipo: row.tipo,
           estatus: row.estatus,
+          total_ingresos: row.total_ingresos || 0,
+          total_egresos: row.total_egresos || 0,
           isr_por_pagar: row.isr_por_pagar || 0,
           iva_pagar: row.iva_pagar || 0,
           isr_retenido: row.isr_retenido || 0,
           base_gravable_isr: row.base_gravable_isr || 0,
-          total_ingresos: row.total_ingresos || 0,
         };
+        totalIngresos += (row.total_ingresos as number) || 0;
+        totalEgresos += (row.total_egresos as number) || 0;
         totalISR += (row.isr_por_pagar as number) || 0;
         totalIVA += (row.iva_pagar as number) || 0;
         totalRetenido += (row.isr_retenido as number) || 0;
@@ -83,16 +93,18 @@ export const GET: APIRoute = async ({ url }) => {
     }
 
     const mesesArray = Object.values(meses);
-    const totalPagarCalc = totalISR + totalIVA;
 
     return new Response(JSON.stringify({
       anio: anioNum,
+      tipo_filtro: tipoFiltro,
       meses: mesesArray,
       anual: {
+        total_ingresos: totalIngresos,
+        total_egresos: totalEgresos,
         isr_por_pagar: totalISR,
         iva_pagar: totalIVA,
         isr_retenido: totalRetenido,
-        total_pagar: totalPagarCalc,
+        total_pagar: totalISR + totalIVA,
       }
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }

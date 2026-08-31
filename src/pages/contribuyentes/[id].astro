@@ -201,6 +201,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div>
               <select class="form-select form-select-sm d-inline-block w-auto me-2" id="declCalAnio" onchange="loadCalendario()">
               </select>
+              <div class="btn-group btn-group-sm me-2" role="group">
+                <input type="radio" class="btn-check" name="calFiltro" id="calFiltroTodos" value="" checked onchange="loadCalendario()">
+                <label class="btn btn-outline-secondary" for="calFiltroTodos">Todos</label>
+                <input type="radio" class="btn-check" name="calFiltro" id="calFiltroRESICO" value="RESICO" onchange="loadCalendario()">
+                <label class="btn btn-outline-primary" for="calFiltroRESICO">RESICO</label>
+                <input type="radio" class="btn-check" name="calFiltro" id="calFiltroSueldos" value="Sueldos" onchange="loadCalendario()">
+                <label class="btn btn-outline-info" for="calFiltroSueldos">Sueldos y Salarios</label>
+              </div>
               <button class="btn btn-primary btn-sm" onclick="openModalCalcular()">
                 <i class="bi bi-plus me-1"></i>Nueva Declaración
               </button>
@@ -1210,18 +1218,29 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function loadCalendario() {
     var anio = document.getElementById('declCalAnio').value;
     if (!anio) return;
-    fetch('/api/declaraciones?action=calendario&contribuyente_id=' + contribuyenteId + '&anio=' + anio)
+    var filtro = document.querySelector('input[name="calFiltro"]:checked').value;
+    fetch('/api/declaraciones?action=calendario&contribuyente_id=' + contribuyenteId + '&anio=' + anio + '&tipo_filtro=' + filtro)
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
         var fmt = function(v) { return (v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }); };
+        var isSueldos = filtro === 'Sueldos';
 
         var rows = [
+          { label: 'Total Ingresos', key: 'total_ingresos', color: 'text-success' },
+          { label: 'Total Egresos', key: 'total_egresos', color: 'text-danger' },
+        ];
+        if (isSueldos) {
+          rows.push({ label: 'Deducciones', key: 'base_gravable_isr', color: 'text-info', computed: function(m) {
+            return m ? ((m.total_ingresos||0) - (m.base_gravable_isr||0)) : 0;
+          }});
+        }
+        rows.push(
           { label: 'ISR a Pagar', key: 'isr_por_pagar', color: 'text-danger' },
           { label: 'IVA a Pagar', key: 'iva_pagar', color: 'text-primary' },
           { label: 'ISR Retenido', key: 'isr_retenido', color: 'text-muted' },
           { label: 'Total de Pago', key: 'total_pagar', color: 'fw-bold', computed: function(m) { return ((m.isr_por_pagar||0) + (m.iva_pagar||0)); } },
-        ];
+        );
 
         var html = '';
         for (var i = 0; i < rows.length; i++) {
@@ -1232,7 +1251,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           for (var m = 0; m < 12; m++) {
             var mesData = data.meses[m];
             var decl = mesData.declaracion;
-            var valor = row.computed ? row.computed(decl || {}) : (decl ? (decl[row.key] || 0) : 0);
+            var valor = row.computed ? row.computed(decl) : (decl ? (decl[row.key] || 0) : 0);
             anualSum += valor;
             var bgClass = '';
             var cursor = 'cursor-pointer';
