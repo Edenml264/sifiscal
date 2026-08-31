@@ -60,9 +60,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="tab-pane fade show active" id="tabObligaciones" role="tabpanel">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h6 class="mb-0">Obligaciones Fiscales</h6>
-            <button class="btn btn-primary btn-sm" onclick="openModalObligacion()">
-              <i class="bi bi-plus me-1"></i>Nueva Obligación
-            </button>
+            <div>
+              <button class="btn btn-outline-success btn-sm me-1" onclick="autoGenerateObligaciones()" title="Generar obligaciones del mes actual">
+                <i class="bi bi-magic me-1"></i>Auto-generar
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="openModalObligacion()">
+                <i class="bi bi-plus me-1"></i>Nueva Obligación
+              </button>
+            </div>
           </div>
           <div class="table-responsive">
             <table class="table table-hover table-sm">
@@ -72,12 +77,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   <th>Periodo</th>
                   <th>Vencimiento</th>
                   <th>Estatus</th>
+                  <th>Presentación</th>
                   <th>Operación</th>
+                  <th>Pago</th>
                   <th class="text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody id="tablaObligaciones">
-                <tr><td colspan="6" class="text-center text-muted">Cargando...</td></tr>
+                <tr><td colspan="8" class="text-center text-muted">Cargando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -317,19 +324,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <input type="date" id="oVencimiento" class="form-control" required />
             </div>
             <div class="mb-3">
-              <label class="form-label">Estatus</label>
-              <select id="oEstatus" class="form-select">
-                <option value="Pendiente">Pendiente</option>
-                <option value="Presentada">Presentada</option>
-                <option value="Vencida">Vencida</option>
-                <option value="No Aplica">No Aplica</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Número de Operación</label>
-              <input type="text" id="oOperacion" class="form-control" />
-            </div>
-            <div class="mb-3">
               <label class="form-label">Notas</label>
               <textarea id="oNotas" class="form-control" rows="2"></textarea>
             </div>
@@ -338,6 +332,61 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="button" class="btn btn-primary" onclick="saveObligacion()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Presentar Obligación -->
+  <div class="modal fade" id="modalPresentarObligacion" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Presentar Obligación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="poId" />
+          <div class="mb-3">
+            <label class="form-label">Fecha de Presentación *</label>
+            <input type="date" id="poFecha" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Número de Operación</label>
+            <input type="text" id="poOperacion" class="form-control" placeholder="Número de operación SAT" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success" onclick="confirmarPresentacionObligacion()">Marcar como Presentada</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Pagar Obligación -->
+  <div class="modal fade" id="modalPagarObligacion" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Pagar Obligación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="pgId" />
+          <div class="mb-3">
+            <label class="form-label">Fecha de Pago *</label>
+            <input type="date" id="pgFecha" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Comprobante de Pago * (PDF o imagen)</label>
+            <input type="file" id="pgComprobante" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required />
+            <div class="form-text">El comprobante es obligatorio para marcar como pagada</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="confirmarPagoObligacion()">Marcar como Pagada</button>
         </div>
       </div>
     </div>
@@ -639,6 +688,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   function initModals() {
     bsModals.obligacion = new bootstrap.Modal(document.getElementById('modalObligacion'));
+    bsModals.presentarObligacion = new bootstrap.Modal(document.getElementById('modalPresentarObligacion'));
+    bsModals.pagarObligacion = new bootstrap.Modal(document.getElementById('modalPagarObligacion'));
     bsModals.efirma = new bootstrap.Modal(document.getElementById('modalEfirma'));
     bsModals.documento = new bootstrap.Modal(document.getElementById('modalDocumento'));
     bsModals.nota = new bootstrap.Modal(document.getElementById('modalNota'));
@@ -677,27 +728,74 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   // ==================== OBLIGACIONES ====================
   function loadObligaciones() {
-    fetch('/api/obligaciones?contribuyente_id=' + contribuyenteId)
+    // First auto-generate monthly obligations, then load
+    fetch('/api/obligaciones?auto_generate=1&contribuyente_id=' + contribuyenteId)
+      .then(function(r) { return r.json(); })
+      .then(function() {
+        return fetch('/api/obligaciones?contribuyente_id=' + contribuyenteId);
+      })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var tbody = document.getElementById('tablaObligaciones');
         if (!data.length) {
-          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay obligaciones registradas</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay obligaciones registradas</td></tr>';
           return;
         }
         tbody.innerHTML = data.map(function(o) {
-          var badge = o.estatus === 'Presentada' ? 'bg-success' : o.estatus === 'Vencida' ? 'bg-danger' : 'bg-warning text-dark';
+          var badge = 'bg-warning text-dark';
+          if (o.estatus === 'Presentada') badge = 'bg-success';
+          else if (o.estatus === 'Vencida') badge = 'bg-danger';
+          else if (o.estatus === 'Pagada') badge = 'bg-info';
+          else if (o.estatus === 'No Aplica') badge = 'bg-secondary';
+
+          var today = new Date();
+          today.setHours(0,0,0,0);
+          var venc = new Date(o.fecha_vencimiento + 'T00:00:00');
+          var diasRest = Math.ceil((venc.getTime() - today.getTime()) / (1000*60*60*24));
+          var vencInfo = o.fecha_vencimiento;
+          if (o.estatus === 'Pendiente' && diasRest >= 0 && diasRest <= 5) {
+            vencInfo += ' <span class="text-danger fw-bold">(' + diasRest + 'd)</span>';
+          } else if (o.estatus === 'Pendiente' && diasRest < 0) {
+            vencInfo += ' <span class="text-danger fw-bold">(vencida)</span>';
+          }
+
+          var presInfo = o.fecha_presentacion || '-';
+          var pagoInfo = o.fecha_pago || '-';
+          if (o.comprobante_pago) {
+            pagoInfo += ' <span class="badge bg-success ms-1">adjunto</span>';
+          }
+
+          var acciones = '';
+          if (o.estatus === 'Pendiente' || o.estatus === 'Vencida') {
+            acciones += '<button class="btn btn-outline-success btn-sm me-1" onclick="openModalPresentarObligacion(\'' + o.id + '\')" title="Presentar">✅</button>';
+            acciones += '<button class="btn btn-outline-primary btn-sm me-1" onclick="openModalPagarObligacion(\'' + o.id + '\')" title="Pagar">💰</button>';
+          }
+          acciones += '<button class="btn btn-outline-warning btn-sm me-1" onclick="editObligacion(\'' + o.id + '\')" title="Editar">✏️</button>';
+          acciones += '<button class="btn btn-outline-danger btn-sm" onclick="deleteObligacion(\'' + o.id + '\')" title="Eliminar">🗑️</button>';
+
           return '<tr>' +
-            '<td>' + o.tipo + '</td>' +
+            '<td><span class="fw-semibold">' + o.tipo + '</span></td>' +
             '<td>' + (o.periodo || '-') + '</td>' +
-            '<td>' + o.fecha_vencimiento + '</td>' +
+            '<td>' + vencInfo + '</td>' +
             '<td><span class="badge ' + badge + '">' + o.estatus + '</span></td>' +
+            '<td>' + presInfo + '</td>' +
             '<td>' + (o.numero_operacion || '-') + '</td>' +
-            '<td class="text-center">' +
-              '<button class="btn btn-outline-warning btn-sm me-1" onclick="editObligacion(\'' + o.id + '\')" title="Editar">✏️</button>' +
-              '<button class="btn btn-outline-danger btn-sm" onclick="deleteObligacion(\'' + o.id + '\')" title="Eliminar">🗑️</button>' +
-            '</td></tr>';
+            '<td>' + pagoInfo + '</td>' +
+            '<td class="text-center text-nowrap">' + acciones + '</td></tr>';
         }).join('');
+      });
+  }
+
+  function autoGenerateObligaciones() {
+    fetch('/api/obligaciones?auto_generate=1&contribuyente_id=' + contribuyenteId)
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res.generated) {
+          alert('Se generaron ' + res.count + ' obligaciones para el mes actual');
+        } else {
+          alert('Ya existen obligaciones para este mes');
+        }
+        loadObligaciones();
       });
   }
 
@@ -706,8 +804,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('oTipo').selectedIndex = 0;
     document.getElementById('oPeriodo').value = '';
     document.getElementById('oVencimiento').value = '';
-    document.getElementById('oEstatus').selectedIndex = 0;
-    document.getElementById('oOperacion').value = '';
     document.getElementById('oNotas').value = '';
     document.getElementById('modalObligacionTitle').textContent = 'Nueva Obligación';
     bsModals.obligacion.show();
@@ -721,8 +817,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         document.getElementById('oTipo').value = o.tipo;
         document.getElementById('oPeriodo').value = o.periodo || '';
         document.getElementById('oVencimiento').value = o.fecha_vencimiento;
-        document.getElementById('oEstatus').value = o.estatus;
-        document.getElementById('oOperacion').value = o.numero_operacion || '';
         document.getElementById('oNotas').value = o.notas || '';
         document.getElementById('modalObligacionTitle').textContent = 'Editar Obligación';
         bsModals.obligacion.show();
@@ -736,8 +830,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       tipo: document.getElementById('oTipo').value,
       periodo: document.getElementById('oPeriodo').value,
       fecha_vencimiento: document.getElementById('oVencimiento').value,
-      estatus: document.getElementById('oEstatus').value,
-      numero_operacion: document.getElementById('oOperacion').value,
+      estatus: 'Pendiente',
       notas: document.getElementById('oNotas').value,
     };
     if (!data.tipo || !data.fecha_vencimiento) { alert('Tipo y vencimiento son obligatorios'); return; }
@@ -760,6 +853,112 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (!confirm('¿Eliminar esta obligación?')) return;
     fetch('/api/obligaciones?id=' + id, { method: 'DELETE' })
       .then(function(r) { if (r.ok) loadObligaciones(); });
+  }
+
+  function openModalPresentarObligacion(id) {
+    document.getElementById('poId').value = id;
+    document.getElementById('poFecha').value = new Date().toISOString().split('T')[0];
+    document.getElementById('poOperacion').value = '';
+    bsModals.presentarObligacion.show();
+  }
+
+  function confirmarPresentacionObligacion() {
+    var id = document.getElementById('poId').value;
+    var fecha = document.getElementById('poFecha').value;
+    if (!fecha) { alert('La fecha de presentación es obligatoria'); return; }
+
+    // First get the obligation to have all fields
+    fetch('/api/obligaciones?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(o) {
+        return fetch('/api/obligaciones', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: o.id,
+            contribuyente_id: o.contribuyente_id,
+            tipo: o.tipo,
+            periodo: o.periodo,
+            fecha_vencimiento: o.fecha_vencimiento,
+            estatus: 'Presentada',
+            fecha_presentacion: fecha,
+            numero_operacion: document.getElementById('poOperacion').value,
+            notas: o.notas,
+          }),
+        });
+      })
+      .then(function(r) { return r.json(); })
+      .then(function() {
+        bsModals.presentarObligacion.hide();
+        loadObligaciones();
+      });
+  }
+
+  function openModalPagarObligacion(id) {
+    document.getElementById('pgId').value = id;
+    document.getElementById('pgFecha').value = new Date().toISOString().split('T')[0];
+    document.getElementById('pgComprobante').value = '';
+    bsModals.pagarObligacion.show();
+  }
+
+  function confirmarPagoObligacion() {
+    var id = document.getElementById('pgId').value;
+    var fecha = document.getElementById('pgFecha').value;
+    var comprobante = document.getElementById('pgComprobante').files[0];
+    if (!fecha) { alert('La fecha de pago es obligatoria'); return; }
+    if (!comprobante) { alert('El comprobante de pago es obligatorio'); return; }
+
+    // Convert file to base64
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var base64 = e.target.result;
+      var tipoMime = comprobante.type || 'application/octet-stream';
+
+      // Save as document
+      fetch('/api/documentos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contribuyente_id: contribuyenteId,
+          nombre: 'Comprobante Pago Obligación - ' + new Date().toISOString().split('T')[0],
+          categoria: 'Otros',
+          tipo_archivo: tipoMime,
+          datos_base64: base64,
+        }),
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(docRes) {
+        var docId = docRes.id || '';
+        // Now update the obligation
+        return fetch('/api/obligaciones?id=' + id)
+          .then(function(r) { return r.json(); })
+          .then(function(o) {
+            return fetch('/api/obligaciones', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: o.id,
+                contribuyente_id: o.contribuyente_id,
+                tipo: o.tipo,
+                periodo: o.periodo,
+                fecha_vencimiento: o.fecha_vencimiento,
+                estatus: 'Pagada',
+                fecha_presentacion: o.fecha_presentacion,
+                numero_operacion: o.numero_operacion,
+                notas: o.notas,
+                fecha_pago: fecha,
+                comprobante_pago: docId,
+              }),
+            });
+          });
+      })
+      .then(function(r) { return r.json(); })
+      .then(function() {
+        bsModals.pagarObligacion.hide();
+        loadObligaciones();
+      });
+    };
+    reader.readAsDataURL(comprobante);
   }
 
   // ==================== E.FIRMA / CSD ====================

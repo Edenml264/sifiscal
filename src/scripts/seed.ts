@@ -41,6 +41,14 @@ async function seed() {
   }
   console.log('✅ Columnas nómina detallada agregadas (006)');
 
+  const migration007 = readFileSync(join(process.cwd(), 'db/migrations/007_obligaciones_pago.sql'), 'utf-8');
+  for (const stmt of migration007.split(';').filter(s => s.trim())) {
+    if (stmt.trim() && !stmt.trim().startsWith('--')) {
+      try { await client.execute(stmt.trim()); } catch (e: any) { /* columna ya existe */ }
+    }
+  }
+  console.log('✅ Columnas de pago en obligaciones agregadas (007)');
+
   // Reset admin user with bcrypt hashed password
   const adminId = crypto.randomUUID();
   const hashedPassword = await bcrypt.hash('admin', SALT_ROUNDS);
