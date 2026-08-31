@@ -135,11 +135,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
       cfdi.folio || '',
       esPUE ? 'pagada' : 'pendiente',
       tipoCfdiFinal,
+      cfdi.nominaSueldo || 0,
+      cfdi.nominaAguinaldo || 0,
+      cfdi.nominaPrimaVacacional || 0,
+      cfdi.nominaPrimaDominical || 0,
+      cfdi.nominaHorasExtra || 0,
+      cfdi.nominaPTU || 0,
+      cfdi.nominaOtrasPercepciones || 0,
+      cfdi.nominaIMSS || 0,
+      cfdi.nominaISR || 0,
+      cfdi.nominaINFONAVIT || 0,
+      cfdi.nominaSAR || 0,
+      cfdi.nominaPensionAlimenticia || 0,
+      cfdi.nominaOtrasDeducciones || 0,
+      cfdi.nominaSubsidioAlEmpleo || 0,
     ];
 
     await client.execute({
-      sql: `INSERT INTO facturas (id, uuid, rfc_emisor, rfc_receptor, contribuyente_id, tipo_movimiento, metodo_pago, forma_pago, subtotal, iva_trasladado, iva_retenido, isr_retenido, total, fecha_emision, fecha_pago, fecha_timbrado, uso_cfdi, serie, folio, estatus, tipo_cfdi)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      sql: `INSERT INTO facturas (id, uuid, rfc_emisor, rfc_receptor, contribuyente_id, tipo_movimiento, metodo_pago, forma_pago, subtotal, iva_trasladado, iva_retenido, isr_retenido, total, fecha_emision, fecha_pago, fecha_timbrado, uso_cfdi, serie, folio, estatus, tipo_cfdi,
+            nomina_sueldo, nomina_aguinaldo, nomina_prima_vacacional, nomina_prima_dominical, nomina_horas_extra, nomina_ptu, nomina_otras_percepciones,
+            nomina_imss, nomina_isr, nomina_infonavit, nomina_sar, nomina_pension_alimenticia, nomina_otras_deducciones, nomina_subsidio_empleo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args,
     });
 

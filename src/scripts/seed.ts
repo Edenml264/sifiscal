@@ -33,6 +33,14 @@ async function seed() {
   }
   console.log('✅ Facturas reclasificadas (005)');
 
+  const migration006 = readFileSync(join(process.cwd(), 'db/migrations/006_nomina_detalle.sql'), 'utf-8');
+  for (const stmt of migration006.split(';').filter(s => s.trim())) {
+    if (stmt.trim() && !stmt.trim().startsWith('--')) {
+      try { await client.execute(stmt.trim()); } catch (e: any) { /* columna ya existe */ }
+    }
+  }
+  console.log('✅ Columnas nómina detallada agregadas (006)');
+
   // Reset admin user with bcrypt hashed password
   const adminId = crypto.randomUUID();
   const hashedPassword = await bcrypt.hash('admin', SALT_ROUNDS);

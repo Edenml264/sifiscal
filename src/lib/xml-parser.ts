@@ -20,6 +20,20 @@ export interface CFDIData {
   nominaTipo?: string;
   nominaPercepciones?: number;
   nominaDeducciones?: number;
+  nominaSueldo?: number;
+  nominaAguinaldo?: number;
+  nominaPrimaVacacional?: number;
+  nominaPrimaDominical?: number;
+  nominaHorasExtra?: number;
+  nominaPTU?: number;
+  nominaOtrasPercepciones?: number;
+  nominaIMSS?: number;
+  nominaISR?: number;
+  nominaINFONAVIT?: number;
+  nominaSAR?: number;
+  nominaPensionAlimenticia?: number;
+  nominaOtrasDeducciones?: number;
+  nominaSubsidioAlEmpleo?: number;
   cpUuidRelacionado?: string;
   cpFechaPago?: string;
   cpMontoPago?: number;
@@ -78,6 +92,10 @@ export function parseCFDI(xmlContent: string): CFDIData {
   let nominaTipo: string | undefined;
   let nominaPercepciones: number | undefined;
   let nominaDeducciones: number | undefined;
+  let nominaSueldo = 0, nominaAguinaldo = 0, nominaPrimaVacacional = 0;
+  let nominaPrimaDominical = 0, nominaHorasExtra = 0, nominaPTU = 0, nominaOtrasPercepciones = 0;
+  let nominaIMSS = 0, nominaISR = 0, nominaINFONAVIT = 0, nominaSAR = 0;
+  let nominaPensionAlimenticia = 0, nominaOtrasDeducciones = 0, nominaSubsidioAlEmpleo = 0;
   let cpUuidRelacionado: string | undefined;
   let cpFechaPago: string | undefined;
   let cpMontoPago: number | undefined;
@@ -92,6 +110,54 @@ export function parseCFDI(xmlContent: string): CFDIData {
       nominaTipo = nomina['@_TipoNomina'] || 'O';
       nominaPercepciones = safeFloat(nomina['@_TotalPercepciones']);
       nominaDeducciones = safeFloat(nomina['@_TotalDeducciones']);
+
+      const percepciones = nomina['nomina12:Percepciones'] || nomina['nomina11:Percepciones'];
+      if (percepciones) {
+        const items = percepciones['nomina12:Percepcion'] || percepciones['nomina11:Percepcion'] || [];
+        const arr = Array.isArray(items) ? items : [items];
+        for (const p of arr) {
+          const tipo = p['@_TipoPercepcion'] || '';
+          const gravado = safeFloat(p['@_ImporteGravado']);
+          const exento = safeFloat(p['@_ImporteExento']);
+          const total = gravado + exento;
+          if (tipo === 'Sueldos' || tipo === '001') nominaSueldo += total;
+          else if (tipo === 'Aguinaldo' || tipo === '002') nominaAguinaldo += total;
+          else if (tipo === 'PrimaVacacional' || tipo === '003') nominaPrimaVacacional += total;
+          else if (tipo === 'PrimaDominical' || tipo === '004') nominaPrimaDominical += total;
+          else if (tipo === 'HorasExtra' || tipo === '005') nominaHorasExtra += total;
+          else if (tipo === 'PTU' || tipo === '006') nominaPTU += total;
+          else nominaOtrasPercepciones += total;
+        }
+      }
+
+      const deducciones = nomina['nomina12:Deducciones'] || nomina['nomina11:Deducciones'];
+      if (deducciones) {
+        const items = deducciones['nomina12:Deduccion'] || deducciones['nomina11:Deduccion'] || [];
+        const arr = Array.isArray(items) ? items : [items];
+        for (const d of arr) {
+          const tipo = d['@_TipoDeduccion'] || '';
+          const importe = safeFloat(d['@_Importe']);
+          if (tipo === '001' || tipo === 'CuotasObreroPatronales') nominaIMSS += importe;
+          else if (tipo === '002' || tipo === 'RetencionISR') nominaISR += importe;
+          else if (tipo === '003' || tipo === 'AportacionesFondosRetiro') nominaSAR += importe;
+          else if (tipo === '004' || tipo === 'AportacionesPlanesPensiones') nominaINFONAVIT += importe;
+          else if (tipo === '005' || tipo === 'Prestamo') nominaPensionAlimenticia += importe;
+          else if (tipo === '008' || tipo === 'CreditoVivienda') nominaOtrasDeducciones += importe;
+          else nominaOtrasDeducciones += importe;
+        }
+      }
+
+      const otrosPagos = nomina['nomina12:OtrosPagos'] || nomina['nomina11:OtrosPagos'];
+      if (otrosPagos) {
+        const items = otrosPagos['nomina12:OtroPago'] || otrosPagos['nomina11:OtroPago'] || [];
+        const arr = Array.isArray(items) ? items : [items];
+        for (const o of arr) {
+          const tipo = o['@_TipoOtroPago'] || '';
+          if (tipo === 'SubsidioAlEmpleo' || tipo === '001') {
+            nominaSubsidioAlEmpleo += safeFloat(o['@_Importe']);
+          }
+        }
+      }
     }
 
     const pagos = complemento['pago10:Pagos'];
@@ -130,6 +196,20 @@ export function parseCFDI(xmlContent: string): CFDIData {
     nominaTipo,
     nominaPercepciones,
     nominaDeducciones,
+    nominaSueldo,
+    nominaAguinaldo,
+    nominaPrimaVacacional,
+    nominaPrimaDominical,
+    nominaHorasExtra,
+    nominaPTU,
+    nominaOtrasPercepciones,
+    nominaIMSS,
+    nominaISR,
+    nominaINFONAVIT,
+    nominaSAR,
+    nominaPensionAlimenticia,
+    nominaOtrasDeducciones,
+    nominaSubsidioAlEmpleo,
     cpUuidRelacionado,
     cpFechaPago,
     cpMontoPago,
