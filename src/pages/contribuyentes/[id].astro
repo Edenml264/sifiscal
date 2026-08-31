@@ -47,6 +47,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <i class="bi bi-file-earmark-code me-1"></i>Facturas
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tabDeclaraciones" role="tab">
+            <i class="bi bi-calculator me-1"></i>Declaraciones
+          </a>
+        </li>
       </ul>
     </div>
     <div class="card-body">
@@ -171,7 +176,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <thead class="table-light">
                 <tr>
                   <th>UUID</th>
-                  <th>Tipo</th>
+                  <th>Clasificación</th>
+                  <th>Movimiento</th>
+                  <th>Uso CFDI</th>
                   <th>Emisor</th>
                   <th>Receptor</th>
                   <th>Total</th>
@@ -181,6 +188,50 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 </tr>
               </thead>
               <tbody id="tablaFacturas">
+                <tr><td colspan="8" class="text-center text-muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab Declaraciones -->
+        <div class="tab-pane fade" id="tabDeclaraciones" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Declaraciones Mensuales y Anuales</h6>
+            <button class="btn btn-primary btn-sm" onclick="openModalCalcular()">
+              <i class="bi bi-plus me-1"></i>Nueva Declaración
+            </button>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-3">
+              <select class="form-select form-select-sm" id="declAnio" onchange="loadDeclaraciones()">
+                <option value="">Todos los años</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <select class="form-select form-select-sm" id="declTipo" onchange="loadDeclaraciones()">
+                <option value="">Todos los tipos</option>
+                <option value="Mensual">Mensual</option>
+                <option value="Anual">Anual</option>
+                <option value="Anual Sueldos">Anual Sueldos</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>Periodo</th>
+                  <th>Tipo</th>
+                  <th class="text-end">Ingresos</th>
+                  <th class="text-end">IVA a Pagar</th>
+                  <th class="text-end">ISR a Pagar</th>
+                  <th>Estatus</th>
+                  <th>Presentación</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaDeclaraciones">
                 <tr><td colspan="8" class="text-center text-muted">Cargando...</td></tr>
               </tbody>
             </table>
@@ -408,14 +459,133 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <input type="text" id="fRFC" class="form-control" readonly />
             </div>
             <div class="mb-3">
-              <label class="form-label">Archivo XML *</label>
-              <input type="file" id="fXML" class="form-control" accept=".xml" required />
+              <label class="form-label">Archivos XML * (puedes seleccionar varios)</label>
+              <input type="file" id="fXML" class="form-control" accept=".xml" multiple required />
+            </div>
+            <div id="uploadProgress" style="display:none;">
+              <div class="d-flex justify-content-between mb-1">
+                <small class="text-muted" id="uploadStatus">Procesando...</small>
+                <small class="text-muted" id="uploadCount">0/0</small>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div class="progress-bar bg-primary" id="uploadBar" style="width: 0%"></div>
+              </div>
+              <div id="uploadResults" class="mt-2 small"></div>
             </div>
           </form>
         </div>
         <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-primary" id="btnProcesar" onclick="saveFactura()">Procesar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Calcular Declaración -->
+  <div class="modal fade" id="modalCalcular" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Calcular Declaración</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label class="form-label">Tipo *</label>
+              <select id="dcTipo" class="form-select" onchange="toggleMesAnual()">
+                <option value="Mensual">Mensual (RESICO)</option>
+                <option value="Anual">Anual (RESICO)</option>
+                <option value="Anual Sueldos">Anual Sueldos y Salarios</option>
+              </select>
+            </div>
+            <div class="col-md-4" id="dcMesGroup">
+              <label class="form-label">Mes *</label>
+              <select id="dcMes" class="form-select">
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Año *</label>
+              <select id="dcAnio" class="form-select"></select>
+            </div>
+          </div>
+          <div class="text-center mb-4">
+            <button class="btn btn-primary" onclick="calcularDeclaracion()">
+              <i class="bi bi-calculator me-1"></i>Calcular desde Facturas
+            </button>
+          </div>
+          <div id="resultadoCalculo" style="display:none;">
+            <h6 class="border-bottom pb-2">Resultado del Cálculo</h6>
+            <div id="resultadoContent"></div>
+            <div class="mb-3 mt-3">
+              <label class="form-label">Notas (opcional)</label>
+              <textarea id="dcNotas" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" onclick="saveFactura()">Procesar</button>
+          <button type="button" class="btn btn-success" id="btnGuardarDeclaracion" style="display:none;" onclick="saveDeclaracion()">
+            <i class="bi bi-check me-1"></i>Guardar Declaración
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalle Declaración -->
+  <div class="modal fade" id="modalDetalleDeclaracion" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalle de Declaración</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="detalleDeclaracionContent">
+          <p class="text-center text-muted">Cargando...</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Presentar Declaración -->
+  <div class="modal fade" id="modalPresentar" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Presentar Declaración</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="pId" />
+          <div class="mb-3">
+            <label class="form-label">Fecha de Presentación *</label>
+            <input type="date" id="pFecha" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Número de Operación SAT</label>
+            <input type="text" id="pOperacion" class="form-control" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success" onclick="confirmarPresentacion()">Confirmar Presentación</button>
         </div>
       </div>
     </div>
@@ -433,6 +603,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     bsModals.documento = new bootstrap.Modal(document.getElementById('modalDocumento'));
     bsModals.nota = new bootstrap.Modal(document.getElementById('modalNota'));
     bsModals.factura = new bootstrap.Modal(document.getElementById('modalFactura'));
+    bsModals.calcular = new bootstrap.Modal(document.getElementById('modalCalcular'));
+    bsModals.detalleDecl = new bootstrap.Modal(document.getElementById('modalDetalleDeclaracion'));
+    bsModals.presentar = new bootstrap.Modal(document.getElementById('modalPresentar'));
+    populateYears();
   }
 
   // ==================== CARGAR DATOS DEL CONTRIBUYENTE ====================
@@ -822,16 +996,63 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       .then(function(data) {
         var tbody = document.getElementById('tablaFacturas');
         if (!data.length) {
-          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay facturas registradas</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No hay facturas registradas</td></tr>';
           return;
         }
+        var usoCfdiMap = {
+          'G01': 'Adquisición de mercancías',
+          'G02': 'Gastos en general',
+          'G03': 'Adquisición de materiales de construcción',
+          'I01': 'Construcciones',
+          'I02': 'Mobilario y equipo de oficina',
+          'I03': 'Equipo de cómputo',
+          'I04': 'Dados, troqueles, moldes y mangueras',
+          'I05': 'Comunicaciones telefónicas',
+          'I06': 'Comunicaciones satelitales',
+          'I07': 'Otra maquinaria y equipo',
+          'D01': 'Crédito al consumo',
+          'D02': 'Crédito hipotecario',
+          'D03': 'Arrendamiento financiero',
+          'D04': 'Arrendamiento operativo',
+          'D05': 'Seguros',
+          'D06': 'Garantías paraerverar mercancías',
+          'D07': 'Crédito a la palabra (tarjeta de crédito)',
+          'CN01': 'Sueldos, salarios y asimilados',
+          'CN02': 'Suplemento a pensionados',
+          'S01': 'Sin efectos fiscales',
+          'CP01': 'Pagos por servicios',
+          'P01': 'Pagos',
+        };
         tbody.innerHTML = data.map(function(f) {
           var tipoBadge = f.tipo_movimiento === 'ingreso' ? 'bg-success' : 'bg-danger';
           var metodoBadge = f.metodo_pago === 'PUE' ? 'bg-info' : 'bg-warning text-dark';
           var estatusBadge = f.estatus === 'pagada' ? 'bg-success' : 'bg-secondary';
+          var cfdiTipo = f.tipo_cfdi || 'Ingreso';
+          var uso = f.uso_cfdi || '';
+          var esDeduccion = uso.startsWith('D') || uso === '010';
+          var esNomina = cfdiTipo === 'Nomina' || uso === 'CN01' || uso === 'CN02';
+          var esCXP = cfdiTipo === 'ComplementoPago';
+
+          var cfdiBadge, cfdiLabel;
+          if (esNomina) {
+            cfdiBadge = 'bg-dark';
+            cfdiLabel = 'Nómina';
+          } else if (esDeduccion) {
+            cfdiBadge = 'bg-warning text-dark';
+            cfdiLabel = 'Deducciones';
+          } else if (esCXP) {
+            cfdiBadge = 'bg-info';
+            cfdiLabel = 'CxP';
+          } else {
+            cfdiBadge = 'bg-primary';
+            cfdiLabel = 'RESICO';
+          }
+          var usoDesc = usoCfdiMap[f.uso_cfdi] || f.uso_cfdi || '-';
           return '<tr>' +
             '<td><code class="small">' + f.uuid.substring(0, 8) + '...</code></td>' +
+            '<td><span class="badge ' + cfdiBadge + '">' + cfdiLabel + '</span></td>' +
             '<td><span class="badge ' + tipoBadge + '">' + f.tipo_movimiento + '</span></td>' +
+            '<td><small>' + f.uso_cfdi + '</small><br/><small class="text-muted">' + usoDesc + '</small></td>' +
             '<td>' + f.rfc_emisor + '</td>' +
             '<td>' + f.rfc_receptor + '</td>' +
             '<td><strong>$' + (f.total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</strong></td>' +
@@ -847,40 +1068,353 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function openModalFactura() {
     document.getElementById('fRFC').value = contribuyenteRFC;
     document.getElementById('fXML').value = '';
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('uploadResults').innerHTML = '';
+    document.getElementById('btnProcesar').disabled = false;
+    document.getElementById('btnProcesar').textContent = 'Procesar';
     bsModals.factura.show();
   }
 
   function saveFactura() {
     var fileInput = document.getElementById('fXML');
-    var file = fileInput.files[0];
-    if (!file) { alert('Selecciona un archivo XML'); return; }
+    var files = fileInput.files;
+    if (!files.length) { alert('Selecciona al menos un archivo XML'); return; }
 
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      fetch('/api/facturas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          xml: e.target.result,
-          contribuyente_id: contribuyenteId,
-          rfc_usuario: contribuyenteRFC,
-        }),
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(res) {
-        if (res.error) { alert(res.error); return; }
-        alert('Factura procesada: ' + res.tipo_movimiento + ' - Total: $' + res.total);
-        bsModals.factura.hide();
+    var progress = document.getElementById('uploadProgress');
+    var bar = document.getElementById('uploadBar');
+    var status = document.getElementById('uploadStatus');
+    var count = document.getElementById('uploadCount');
+    var results = document.getElementById('uploadResults');
+    var btn = document.getElementById('btnProcesar');
+
+    progress.style.display = '';
+    results.innerHTML = '';
+    btn.disabled = true;
+    btn.textContent = 'Procesando...';
+
+    var total = files.length;
+    var completed = 0;
+    var ok = 0;
+    var fail = 0;
+
+    function processNext(index) {
+      if (index >= total) {
+        bar.style.width = '100%';
+        status.textContent = 'Completado';
+        btn.disabled = false;
+        btn.textContent = 'Procesar';
         loadFacturas();
-      });
-    };
-    reader.readAsText(file);
+        return;
+      }
+
+      var file = files[index];
+      var pct = Math.round(((index) / total) * 100);
+      bar.style.width = pct + '%';
+      count.textContent = (index + 1) + '/' + total;
+      status.textContent = 'Procesando: ' + file.name;
+
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        fetch('/api/facturas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            xml: e.target.result,
+            contribuyente_id: contribuyenteId,
+            rfc_usuario: contribuyenteRFC,
+          }),
+        })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+        .then(function(res) {
+          completed++;
+          if (res.ok && res.data.success) {
+            ok++;
+            results.innerHTML += '<div class="text-success">✓ ' + file.name + ' — ' + res.data.tipo_movimiento + ' $' + res.data.total + '</div>';
+          } else {
+            fail++;
+            results.innerHTML += '<div class="text-danger">✗ ' + file.name + ' — ' + (res.data.error || 'Error') + '</div>';
+          }
+          processNext(index + 1);
+        })
+        .catch(function(err) {
+          completed++;
+          fail++;
+          results.innerHTML += '<div class="text-danger">✗ ' + file.name + ' — Error de conexión</div>';
+          processNext(index + 1);
+        });
+      };
+      reader.readAsText(file);
+    }
+
+    processNext(0);
   }
 
   function deleteFactura(id) {
     if (!confirm('¿Eliminar esta factura?')) return;
     fetch('/api/facturas?id=' + id, { method: 'DELETE' })
       .then(function(r) { if (r.ok) loadFacturas(); });
+  }
+
+  // ==================== DECLARACIONES ====================
+  var calcularData = null;
+
+  function populateYears() {
+    var sel = document.getElementById('dcAnio');
+    var selFilter = document.getElementById('declAnio');
+    var currentYear = new Date().getFullYear();
+    var html = '';
+    for (var y = currentYear; y >= currentYear - 5; y--) {
+      html += '<option value="' + y + '">' + y + '</option>';
+    }
+    sel.innerHTML = html;
+    selFilter.innerHTML = '<option value="">Todos los años</option>' + html;
+  }
+
+  function toggleMesAnual() {
+    var tipo = document.getElementById('dcTipo').value;
+    document.getElementById('dcMesGroup').style.display = (tipo === 'Anual' || tipo === 'Anual Sueldos') ? 'none' : '';
+  }
+
+  function openModalCalcular() {
+    calcularData = null;
+    document.getElementById('dcTipo').selectedIndex = 0;
+    document.getElementById('dcMes').value = new Date().getMonth() + 1;
+    document.getElementById('dcAnio').value = new Date().getFullYear();
+    document.getElementById('dcNotas').value = '';
+    document.getElementById('resultadoCalculo').style.display = 'none';
+    document.getElementById('btnGuardarDeclaracion').style.display = 'none';
+    toggleMesAnual();
+    bsModals.calcular.show();
+  }
+
+  function calcularDeclaracion() {
+    var tipo = document.getElementById('dcTipo').value;
+    var mes = document.getElementById('dcMes').value;
+    var anio = document.getElementById('dcAnio').value;
+    var params = 'action=calcular&contribuyente_id=' + contribuyenteId + '&tipo=' + tipo + '&anio=' + anio;
+    if (tipo === 'Mensual') params += '&mes=' + mes;
+
+    fetch('/api/declaraciones?' + params)
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.error) { alert(d.error); return; }
+        calcularData = d;
+        var fmt = function(v) { return (v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }); };
+        var html = '';
+
+        if (d.tipo === 'Anual Sueldos') {
+          var saldo = d.isr_por_pagar_o_favor || 0;
+          var saldoLabel = saldo < 0 ? 'Saldo a Favor' : 'ISR a Pagar';
+          var saldoColor = saldo < 0 ? 'success' : 'danger';
+          html = '<div class="row g-3">' +
+            '<div class="col-md-6"><div class="card border-primary"><div class="card-body">' +
+              '<h6 class="card-title text-primary">Ingresos y Deducciones</h6>' +
+              '<table class="table table-sm mb-0">' +
+                '<tr><td>Ingresos Acumulables:</td><td class="text-end">$' + fmt(d.ingresos_acumulables) + '</td></tr>' +
+                '<tr><td>Deducciones Personales:</td><td class="text-end">$' + fmt(d.deducciones_personales) + '</td></tr>' +
+                '<tr><td><strong>Base Gravable:</strong></td><td class="text-end"><strong>$' + fmt(d.base_gravable_isr) + '</strong></td></tr>' +
+              '</table></div></div></div>' +
+            '<div class="col-md-6"><div class="card border-info"><div class="card-body">' +
+              '<h6 class="card-title text-info">Tope Deducciones (Art. 151 LISR)</h6>' +
+              '<table class="table table-sm mb-0">' +
+                '<tr><td>5 UMA Anuales:</td><td class="text-end">$' + fmt(532837.80) + '</td></tr>' +
+                '<tr><td>15% Ingresos:</td><td class="text-end">$' + fmt((d.ingresos_acumulables || 0) * 0.15) + '</td></tr>' +
+                '<tr><td><strong>Tope Aplicable:</strong></td><td class="text-end"><strong>$' + fmt(d.tope_deducciones) + '</strong></td></tr>' +
+              '</table></div></div></div>' +
+            '<div class="col-md-6"><div class="card border-warning"><div class="card-body">' +
+              '<h6 class="card-title text-warning">ISR Anual (Art. 152 LISR)</h6>' +
+              '<table class="table table-sm mb-0">' +
+                '<tr><td>ISR Anual Bruto:</td><td class="text-end">$' + fmt(d.isr_anual_bruto) + '</td></tr>' +
+                '<tr><td>Subsidio al Empleo:</td><td class="text-end">$' + fmt(d.subsidio_empleo) + '</td></tr>' +
+                '<tr><td>Tasa ISR:</td><td class="text-end">' + (d.tasa_isr * 100).toFixed(2) + '%</td></tr>' +
+                '<tr><td>ISR Retenido:</td><td class="text-end">$' + fmt(d.isr_retenido) + '</td></tr>' +
+              '</table></div></div></div>' +
+            '<div class="col-md-6"><div class="card border-' + saldoColor + '"><div class="card-body">' +
+              '<h6 class="card-title text-' + saldoColor + '">Resultado</h6>' +
+              '<table class="table table-sm mb-0">' +
+                '<tr><td>Facturas:</td><td class="text-end">' + d.num_facturas + '</td></tr>' +
+                '<tr><td><strong>' + saldoLabel + ':</strong></td><td class="text-end"><strong>$' + fmt(Math.abs(saldo)) + '</strong></td></tr>' +
+              '</table></div></div></div>' +
+            '</div>';
+        } else {
+          var ivaPagar = fmt(d.iva_pagar);
+          var isrPagar = fmt(d.isr_por_pagar);
+          var total = fmt(d.iva_pagar + d.isr_por_pagar);
+          html = '<div class="row g-3">' +
+            '<div class="col-md-6"><div class="card border-primary"><div class="card-body">' +
+              '<h6 class="card-title text-primary">Ingresos y Egresos</h6>' +
+              '<table class="table table-sm mb-0">' +
+                '<tr><td>Ingresos:</td><td class="text-end">$' + fmt(d.total_ingresos) + '</td></tr>' +
+                '<tr><td>Egresos:</td><td class="text-end">$' + fmt(d.total_egresos) + '</td></tr>' +
+                '<tr><td><strong>Base Gravable:</strong></td><td class="text-end"><strong>$' + fmt(d.base_gravable_isr) + '</strong></td></tr>' +
+              '</table></div></div></div>' +
+            '<div class="col-md-6"><div class="card border-info"><div class="card-body">' +
+              '<h6 class="card-title text-info">IVA</h6>' +
+              '<table class="table table-sm mb-0">' +
+                '<tr><td>Trasladado:</td><td class="text-end">$' + fmt(d.iva_trasladado) + '</td></tr>' +
+                '<tr><td>Acreditado:</td><td class="text-end">$' + fmt(d.iva_acreditado) + '</td></tr>' +
+                '<tr><td>Retenido:</td><td class="text-end">$' + fmt(d.iva_retenido) + '</td></tr>' +
+                '<tr><td><strong>IVA a Pagar:</strong></td><td class="text-end"><strong>$' + ivaPagar + '</strong></td></tr>' +
+              '</table></div></div></div>' +
+            '<div class="col-md-6"><div class="card border-warning"><div class="card-body">' +
+              '<h6 class="card-title text-warning">ISR (RESICO)</h6>' +
+              '<table class="table table-sm mb-0">' +
+                '<tr><td>Base Gravable Mensual:</td><td class="text-end">$' + fmt(d.base_gravable_isr / (d.tipo === 'Anual' ? 12 : 1)) + '</td></tr>' +
+                '<tr><td>Tasa:</td><td class="text-end">' + (d.tasa_isr * 100).toFixed(2) + '%</td></tr>' +
+                '<tr><td>ISR Total:</td><td class="text-end">$' + fmt(d.isr_total) + '</td></tr>' +
+                '<tr><td>Retenido:</td><td class="text-end">$' + fmt(d.isr_retenido) + '</td></tr>' +
+                '<tr><td><strong>ISR a Pagar:</strong></td><td class="text-end"><strong>$' + isrPagar + '</strong></td></tr>' +
+              '</table></div></div></div>' +
+            '<div class="col-md-6"><div class="card border-secondary"><div class="card-body">' +
+              '<h6 class="card-title text-secondary">Resumen</h6>' +
+              '<table class="table table-sm mb-0">' +
+                '<tr><td>Facturas:</td><td class="text-end">' + d.num_facturas + '</td></tr>' +
+                '<tr><td><strong>Total IVA + ISR a Pagar:</strong></td><td class="text-end"><strong>$' + total + '</strong></td></tr>' +
+              '</table></div></div></div>' +
+            '</div>';
+        }
+
+        document.getElementById('resultadoContent').innerHTML = html;
+        document.getElementById('resultadoCalculo').style.display = '';
+        document.getElementById('btnGuardarDeclaracion').style.display = '';
+      })
+      .catch(function(e) { alert('Error al calcular: ' + e.message); });
+  }
+
+  function saveDeclaracion() {
+    if (!calcularData) { alert('Primero calcula la declaración'); return; }
+    var data = Object.assign({}, calcularData, {
+      contribuyente_id: contribuyenteId,
+      notas: document.getElementById('dcNotas').value || null,
+    });
+    delete data.num_facturas;
+
+    fetch('/api/declaraciones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.error) { alert(res.error); return; }
+      bsModals.calcular.hide();
+      loadDeclaraciones();
+    });
+  }
+
+  function loadDeclaraciones() {
+    var anio = document.getElementById('declAnio').value;
+    var tipo = document.getElementById('declTipo').value;
+    var params = 'contribuyente_id=' + contribuyenteId;
+    if (anio) params += '&anio=' + anio;
+    if (tipo) params += '&tipo=' + tipo;
+
+    fetch('/api/declaraciones?' + params)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var tbody = document.getElementById('tablaDeclaraciones');
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay declaraciones registradas</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(function(d) {
+          var estatusBadge = d.estatus === 'Presentada' ? 'bg-success' : d.estatus === 'Cancelada' ? 'bg-danger' : 'bg-warning text-dark';
+          var tipoBadge = d.tipo === 'Anual Sueldos' ? 'bg-info' : d.tipo === 'Anual' ? 'bg-primary' : 'bg-secondary';
+          return '<tr>' +
+            '<td><strong>' + d.periodo + '</strong></td>' +
+            '<td><span class="badge ' + tipoBadge + '">' + d.tipo + '</span></td>' +
+            '<td class="text-end">$' + (d.total_ingresos || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</td>' +
+            '<td class="text-end">$' + (d.iva_pagar || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</td>' +
+            '<td class="text-end">$' + (d.isr_por_pagar || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</td>' +
+            '<td><span class="badge ' + estatusBadge + '">' + d.estatus + '</span></td>' +
+            '<td>' + (d.fecha_presentacion || '-') + '</td>' +
+            '<td class="text-center">' +
+              '<button class="btn btn-outline-info btn-sm me-1" onclick="verDetalleDeclaracion(\'' + d.id + '\')" title="Ver">👁️</button>' +
+              (d.estatus === 'Borrador' ? '<button class="btn btn-outline-success btn-sm me-1" onclick="openModalPresentar(\'' + d.id + '\')" title="Presentar">✅</button><button class="btn btn-outline-danger btn-sm" onclick="deleteDeclaracion(\'' + d.id + '\')" title="Eliminar">🗑️</button>' : '') +
+            '</td></tr>';
+        }).join('');
+      });
+  }
+
+  function verDetalleDeclaracion(id) {
+    fetch('/api/declaraciones?id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var tipoBadge = d.tipo === 'Anual Sueldos' ? 'bg-info' : d.tipo === 'Anual' ? 'bg-primary' : 'bg-secondary';
+        var html = '<div class="row g-3">' +
+          '<div class="col-12"><span class="badge ' + tipoBadge + ' me-2">' + d.tipo + '</span><span class="badge ' + (d.estatus === 'Presentada' ? 'bg-success' : d.estatus === 'Cancelada' ? 'bg-danger' : 'bg-warning text-dark') + '">' + d.estatus + '</span></div>' +
+          '<div class="col-md-4"><strong>Periodo:</strong><br/>' + d.periodo + '</div>' +
+          '<div class="col-md-4"><strong>Presentación:</strong><br/>' + (d.fecha_presentacion || 'N/A') + '</div>' +
+          '<div class="col-md-4"><strong>Núm. Operación:</strong><br/>' + (d.numero_operacion || 'N/A') + '</div>';
+
+        if (d.tipo === 'Anual Sueldos') {
+          var ingresos = (d.total_ingresos || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+          var deducciones = (d.isr_retenido || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+          var baseGravable = (d.base_gravable_isr || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+          var isrRetenido = (d.isr_retenido || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+          var isrPorPagar = (d.isr_por_pagar || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+          var tasa = (d.tasa_isr * 100).toFixed(2);
+          html += '<div class="col-12"><hr/><strong class="text-info">Declaración Anual de Sueldos y Salarios (Art. 152 LISR)</strong></div>' +
+            '<div class="col-md-6"><strong>Ingresos Acumulables:</strong><br/>$' + ingresos + '</div>' +
+            '<div class="col-md-6"><strong>Deducciones Personales:</strong><br/>$' + deducciones + '</div>' +
+            '<div class="col-md-6"><strong>Base Gravable:</strong><br/>$' + baseGravable + '</div>' +
+            '<div class="col-md-6"><strong>Tasa ISR:</strong><br/>' + tasa + '%</div>' +
+            '<div class="col-md-6"><strong>ISR Retenido:</strong><br/>$' + isrRetenido + '</div>' +
+            '<div class="col-md-12"><strong>ISR a Pagar / Saldo a Favor:</strong><br/><span class="text-warning fs-5">$' + isrPorPagar + '</span></div>';
+        } else {
+          var ivaPagar = (d.iva_pagar || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+          var isrPagar = (d.isr_por_pagar || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+          var total = (d.iva_pagar + d.isr_por_pagar).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+          html += '<div class="col-md-6"><strong>Total Ingresos:</strong><br/>$' + (d.total_ingresos || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-6"><strong>Total Egresos:</strong><br/>$' + (d.total_egresos || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-6"><strong>IVA Trasladado:</strong><br/>$' + (d.iva_trasladado || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-6"><strong>IVA Acreditado:</strong><br/>$' + (d.iva_acreditado || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-6"><strong>IVA Retenido:</strong><br/>$' + (d.iva_retenido || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-6"><strong>IVA a Pagar:</strong><br/><span class="text-primary fs-5">$' + ivaPagar + '</span></div>' +
+            '<div class="col-md-4"><strong>Base Gravable ISR:</strong><br/>$' + (d.base_gravable_isr || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-4"><strong>Tasa ISR:</strong><br/>' + (d.tasa_isr * 100).toFixed(2) + '%</div>' +
+            '<div class="col-md-4"><strong>ISR Retenido:</strong><br/>$' + (d.isr_retenido || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>' +
+            '<div class="col-md-12"><strong>ISR a Pagar:</strong><br/><span class="text-warning fs-5">$' + isrPagar + '</span></div>' +
+            '<div class="col-12"><hr/><strong>Total a Pagar (IVA + ISR):</strong><br/><span class="text-danger fs-4">$' + total + '</span></div>';
+        }
+
+        if (d.notas) html += '<div class="col-12"><strong>Notas:</strong><br/>' + d.notas + '</div>';
+        html += '</div>';
+        document.getElementById('detalleDeclaracionContent').innerHTML = html;
+        bsModals.detalleDecl.show();
+      });
+  }
+
+  function openModalPresentar(id) {
+    document.getElementById('pId').value = id;
+    document.getElementById('pFecha').value = new Date().toISOString().split('T')[0];
+    document.getElementById('pOperacion').value = '';
+    bsModals.presentar.show();
+  }
+
+  function confirmarPresentacion() {
+    var id = document.getElementById('pId').value;
+    fetch('/api/declaraciones', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: id,
+        estatus: 'Presentada',
+        fecha_presentacion: document.getElementById('pFecha').value,
+        numero_operacion: document.getElementById('pOperacion').value,
+      }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function() {
+      bsModals.presentar.hide();
+      loadDeclaraciones();
+    });
+  }
+
+  function deleteDeclaracion(id) {
+    if (!confirm('¿Eliminar esta declaración?')) return;
+    fetch('/api/declaraciones?id=' + id, { method: 'DELETE' })
+      .then(function(r) { if (r.ok) loadDeclaraciones(); });
   }
 
   // ==================== INICIALIZACIÓN ====================
@@ -892,5 +1426,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     loadDocumentos();
     loadNotas();
     loadFacturas();
+    loadDeclaraciones();
   });
 </script>

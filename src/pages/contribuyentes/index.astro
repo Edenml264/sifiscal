@@ -135,34 +135,16 @@ const REGIMENES = [
     </div>
   </div>
 
-  <!-- Modal Detalle -->
-  <div class="modal fade" id="modalDetalle" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Detalle del Contribuyente</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body" id="detalleContent">
-          <p class="text-center text-muted">Cargando...</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  </div>
+
 </DashboardLayout>
 
 <script is:inline>
   var bsModal = null;
-  var bsDetalle = null;
   var currentPage = 1;
   var totalPages = 1;
 
   function initModals() {
     bsModal = new bootstrap.Modal(document.getElementById('modalContribuyente'));
-    bsDetalle = new bootstrap.Modal(document.getElementById('modalDetalle'));
   }
 
   function loadContribuyentes(page) {
@@ -310,25 +292,7 @@ const REGIMENES = [
   }
 
   function verDetalle(id) {
-    fetch('/api/contribuyentes?id=' + id)
-      .then(function(r) { return r.json(); })
-      .then(function(c) {
-        var badge = c.estatus === 'Activo' ? 'bg-success' : 'bg-danger';
-        document.getElementById('detalleContent').innerHTML =
-          '<div class="row g-3">' +
-            '<div class="col-6"><strong>Nombre:</strong><br/>' + c.nombre + '</div>' +
-            '<div class="col-6"><strong>RFC:</strong><br/><code>' + c.rfc + '</code></div>' +
-            '<div class="col-6"><strong>CURP:</strong><br/>' + (c.curp || 'N/A') + '</div>' +
-            '<div class="col-6"><strong>Régimen:</strong><br/>' + c.regimen_fiscal + '</div>' +
-            '<div class="col-6"><strong>Domicilio:</strong><br/>' + (c.domicilio || 'N/A') + '</div>' +
-            '<div class="col-6"><strong>Correo:</strong><br/>' + (c.correo || 'N/A') + '</div>' +
-            '<div class="col-6"><strong>Teléfono:</strong><br/>' + (c.telefono || 'N/A') + '</div>' +
-            '<div class="col-6"><strong>Contacto:</strong><br/>' + (c.contacto || 'N/A') + '</div>' +
-            '<div class="col-12"><strong>Estatus:</strong> <span class="badge ' + badge + '">' + c.estatus + '</span></div>' +
-          '</div>';
-        bsDetalle.show();
-      })
-      .catch(function() { alert('Error al cargar'); });
+    window.location.href = '/contribuyentes/' + id;
   }
 
   document.addEventListener('DOMContentLoaded', initModals);

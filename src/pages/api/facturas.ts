@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { client } from '../../lib/turso';
 import { generateId } from '../../lib/validations';
-import { parseCFDI, clasificarMovimiento } from '../../lib/xml-parser';
+import { parseCFDI, clasificarMovimiento, esNomina } from '../../lib/xml-parser';
 
 export const GET: APIRoute = async ({ url, locals }) => {
   const user = locals.user;
@@ -68,7 +68,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const cfdi = parseCFDI(xml);
-    const tipoMovimiento = clasificarMovimiento(cfdi.rfcEmisor, cfdi.rfcReceptor, rfc_usuario);
+    const tipoMovimiento = clasificarMovimiento(cfdi.rfcEmisor, cfdi.rfcReceptor, rfc_usuario, cfdi.usoCFDI, cfdi.tipoCfdi);
 
     const existing = await client.execute({
       sql: 'SELECT id FROM facturas WHERE uuid = ?',
@@ -79,37 +79,75 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const id = generateId();
-    await client.execute({
-      sql: `INSERT INTO facturas (id, uuid, rfc_emisor, rfc_receptor, contribuyente_id, tipo_movimiento, metodo_pago, forma_pago, subtotal, iva_trasladado, iva_retenido, isr_retenido, total, fecha_emision, fecha_pago, fecha_timbrado, uso_cfdi, serie, folio, estatus)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
+
+    if (cfdi.tipoCfdi === 'ComplementoPago' && cfdi.cpUuidRelacionado) {
+      await client.execute({
+        sql: `INSERT INTO facturas (id, uuid, rfc_emisor, rfc_receptor, contribuyente_id, tipo_movimiento, metodo_pago, forma_pago, subtotal, iva_trasladado, iva_retenido, isr_retenido, total, fecha_emision, fecha_pago, fecha_timbrado, uso_cfdi, serie, folio, estatus, tipo_cfdi)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          id, cfdi.uuid || '', cfdi.rfcEmisor || '', cfdi.rfcReceptor || '',
+          contribuyente_id, tipoMovimiento, cfdi.metodoPago || '', cfdi.formaPago || '',
+          cfdi.subtotal || 0, cfdi.ivaTrasladado || 0, cfdi.ivaRetenido || 0, cfdi.isrRetenido || 0,
+          cfdi.total || 0, cfdi.fechaEmision || '', cfdi.cpFechaPago || cfdi.fechaEmision || '',
+          cfdi.fechaTimbrado || '', cfdi.usoCFDI || '', cfdi.serie || '', cfdi.folio || '',
+          'pagada', 'ComplementoPago',
+        ],
+      });
+
+      const original = await client.execute({
+        sql: `UPDATE facturas SET fecha_pago = ?, estatus = 'pagada', updated_at = datetime('now')
+              WHERE uuid = ? AND contribuyente_id = ? AND fecha_pago IS NULL`,
+        args: [cfdi.cpFechaPago || cfdi.fechaEmision || '', cfdi.cpUuidRelacionado, contribuyente_id],
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
         id,
-        cfdi.uuid,
-        cfdi.rfcEmisor,
-        cfdi.rfcReceptor,
-        contribuyente_id,
-        tipoMovimiento,
-        cfdi.metodoPago,
-        cfdi.formaPago,
-        cfdi.subtotal,
-        cfdi.ivaTrasladado,
-        cfdi.ivaRetenido,
-        cfdi.isrRetenido,
-        cfdi.total,
-        cfdi.fechaEmision,
-        cfdi.metodoPago === 'PUE' ? cfdi.fechaEmision : null,
-        cfdi.fechaTimbrado,
-        cfdi.usoCFDI,
-        cfdi.serie,
-        cfdi.folio,
-        cfdi.metodoPago === 'PUE' ? 'pagada' : 'pendiente',
-      ],
+        tipo_movimiento: tipoMovimiento,
+        tipo_cfdi: 'ComplementoPago',
+        uuid: cfdi.uuid,
+        total: cfdi.total,
+        factura_original_actualizada: original.rowsAffected > 0,
+      }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    const esPUE = cfdi.metodoPago === 'PUE';
+    const tipoCfdiFinal = esNomina(cfdi.usoCFDI) ? 'Nomina' : (cfdi.tipoCfdi === 'ComplementoPago' ? 'ComplementoPago' : 'Ingreso');
+    const args = [
+      id,
+      cfdi.uuid || '',
+      cfdi.rfcEmisor || '',
+      cfdi.rfcReceptor || '',
+      contribuyente_id,
+      tipoMovimiento,
+      cfdi.metodoPago || '',
+      cfdi.formaPago || '',
+      cfdi.subtotal || 0,
+      cfdi.ivaTrasladado || 0,
+      cfdi.ivaRetenido || 0,
+      cfdi.isrRetenido || 0,
+      cfdi.total || 0,
+      cfdi.fechaEmision || '',
+      esPUE ? (cfdi.fechaEmision || '') : null,
+      cfdi.fechaTimbrado || '',
+      cfdi.usoCFDI || '',
+      cfdi.serie || '',
+      cfdi.folio || '',
+      esPUE ? 'pagada' : 'pendiente',
+      tipoCfdiFinal,
+    ];
+
+    await client.execute({
+      sql: `INSERT INTO facturas (id, uuid, rfc_emisor, rfc_receptor, contribuyente_id, tipo_movimiento, metodo_pago, forma_pago, subtotal, iva_trasladado, iva_retenido, isr_retenido, total, fecha_emision, fecha_pago, fecha_timbrado, uso_cfdi, serie, folio, estatus, tipo_cfdi)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args,
     });
 
     return new Response(JSON.stringify({
       success: true,
       id,
       tipo_movimiento: tipoMovimiento,
+      tipo_cfdi: cfdi.tipoCfdi,
       uuid: cfdi.uuid,
       total: cfdi.total,
     }), { status: 201, headers: { 'Content-Type': 'application/json' } });
